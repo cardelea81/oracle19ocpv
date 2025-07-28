@@ -1,0 +1,161 @@
+---
+# Backup Tasks before Patching
+
+- name: Create backup directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ oracle_user }}"
+    group: "{{ oracle_group }}"
+    mode: '0755'
+  loop:
+    - "{{ backup_location }}"
+    - "{{ backup_location }}/oracle_homes"
+    - "{{ backup_location }}/ocr_voting"
+    - "{{ backup_location }}/logs"
+  when: backup_enabled
+  tags: backup
+
+- name: Backup Oracle Grid Infrastructure Home
+  shell: |
+    cd {{ oracle_grid_home | dirname }}
+    tar -czf {{ backup_location }}/oracle_homes/grid_home_backup_{{ ansible_date_time.epoch }}.tar.gz \
+      --exclude='*.log' --exclude='trace' --exclude='*.trc' \
+      {{ oracle_grid_home | basename }}
+  when: 
+    - backup_enabled
+    - backup_oracle_homes
+  register: grid_backup_result
+  async: 3600
+  poll: 30
+  tags: backup
+
+- name: Backup Oracle Database Home
+  shell: |
+    cd {{ oracle_db_home | dirname }}
+    tar -czf {{ backup_location }}/oracle_homes/db_home_backup_{{ ansible_date_time.epoch }}.tar.gz \
+      --exclude='*.log' --exclude='trace' --exclude='*.trc' \
+      {{ oracle_db_home | basename }}
+  when: 
+    - backup_enabled
+    - backup_oracle_homes
+  register: db_backup_result
+  async: 3600
+  poll: 30
+  tags: backup
+
+- name: Backup OCR and Voting disks
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/ocrconfig -export {{ backup_location }}/ocr_voting/ocr_backup_{{ ansible_date_time.epoch }}.ocr
+  become_user: root
+  when: 
+    - backup_enabled
+    - backup_ocr_voting
+  register: ocr_backup_result
+  tags: backup
+
+- name: Create Oracle inventory backup
+  shell: |
+    cd {{ oracle_inventory | dirname }}
+    tar -czf {{ backup_location }}/oracle_homes/inventory_backup_{{ ansible_date_time.epoch }}.tar.gz \
+      {{ oracle_inventory | basename }}
+  when: backup_enabled
+  register: inventory_backup_result
+  tags: backup
+
+- name: Generate current patches list for Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch lspatches > {{ backup_location }}/logs/grid_patches_before_{{ ansible_date_time.epoch }}.txt
+  become_user: "{{ grid_user }}"
+  when: backup_enabled
+  tags: backup
+
+- name: Generate current patches list for Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches > {{ backup_location }}/logs/db_patches_before_{{ ansible_date_time.epoch }}.txt
+  become_user: "{{ oracle_user }}"
+  when: backup_enabled
+  tags: backup
+
+- name: Create cluster configuration backup
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl stat res -t > {{ backup_location }}/logs/cluster_status_before_{{ ansible_date_time.epoch }}.txt
+    {{ oracle_grid_home }}/bin/olsnodes -v > {{ backup_location }}/logs/cluster_nodes_{{ ansible_date_time.epoch }}.txt
+  become_user: "{{ grid_user }}"
+  when: backup_enabled
+  failed_when: false
+  tags: backup
+
+- name: Create database configuration backup
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl config database -d {{ item.name }} > {{ backup_location }}/logs/db_config_{{ item.name }}_{{ ansible_date_time.epoch }}.txt
+    {{ oracle_db_home }}/bin/srvctl status database -d {{ item.name }} > {{ backup_location }}/logs/db_status_{{ item.name }}_{{ ansible_date_time.epoch }}.txt
+  become_user: "{{ oracle_user }}"
+  loop: "{{ oracle_databases }}"
+  when: backup_enabled
+  failed_when: false
+  tags: backup
+
+- name: Generate backup summary
+  copy:
+    dest: "{{ backup_location }}/backup_summary_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Oracle Patch Backup Summary
+      ===========================
+      Date: {{ ansible_date_time.iso8601 }}
+      Patch ID: {{ patch_id }}
+      Backup Location: {{ backup_location }}
+      
+      Backup Components:
+      {% if backup_oracle_homes %}
+      - Grid Infrastructure Home: {{ 'COMPLETED' if grid_backup_result is succeeded else 'FAILED' }}
+      - Database Home: {{ 'COMPLETED' if db_backup_result is succeeded else 'FAILED' }}
+      {% endif %}
+      {% if backup_ocr_voting %}
+      - OCR Backup: {{ 'COMPLETED' if ocr_backup_result is succeeded else 'FAILED' }}
+      {% endif %}
+      - Oracle Inventory: {{ 'COMPLETED' if inventory_backup_result is succeeded else 'FAILED' }}
+      - Configuration Files: COMPLETED
+      
+      Restore Instructions:
+      ===================
+      1. Stop Oracle services
+      2. Restore Oracle Homes from backup
+      3. Restore OCR if needed
+      4. Start Oracle services
+      
+      Files:
+      {% if backup_oracle_homes %}
+      - Grid Home: oracle_homes/grid_home_backup_{{ ansible_date_time.epoch }}.tar.gz
+      - Database Home: oracle_homes/db_home_backup_{{ ansible_date_time.epoch }}.tar.gz
+      {% endif %}
+      {% if backup_ocr_voting %}
+      - OCR: ocr_voting/ocr_backup_{{ ansible_date_time.epoch }}.ocr
+      {% endif %}
+      - Inventory: oracle_homes/inventory_backup_{{ ansible_date_time.epoch }}.tar.gz
+  when: backup_enabled
+  tags: backup
+
+- name: Display backup summary
+  debug:
+    msg:
+      - "=== Backup Summary ==="
+      - "Backup Location: {{ backup_location }}"
+      - "Grid Home Backup: {{ 'COMPLETED' if grid_backup_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "Database Home Backup: {{ 'COMPLETED' if db_backup_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "OCR Backup: {{ 'COMPLETED' if ocr_backup_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "Inventory Backup: {{ 'COMPLETED' if inventory_backup_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "Configuration Backup: COMPLETED"
+  when: backup_enabled
+  tags: backup
+
+- name: Skip backup notification
+  debug:
+    msg: "Backup is disabled. Proceeding without backup."
+  when: not backup_enabled
+  tags: backup 

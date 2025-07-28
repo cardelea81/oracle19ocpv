@@ -1,0 +1,190 @@
+---
+# Patch Preparation Tasks
+
+- name: Create patch staging directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ oracle_user }}"
+    group: "{{ oracle_group }}"
+    mode: '0755'
+  loop:
+    - "{{ patch_staging_dir }}"
+    - "{{ patch_extract_dir }}"
+    - "{{ backup_location }}"
+  tags: preparation
+
+- name: Download Oracle patch
+  get_url:
+    url: "{{ patch_download_url }}"
+    dest: "{{ patch_staging_dir }}/{{ patch_filename }}"
+    owner: "{{ oracle_user }}"
+    group: "{{ oracle_group }}"
+    mode: '0644'
+    timeout: 3600
+  tags: 
+    - preparation
+    - download
+
+- name: Verify patch file exists
+  stat:
+    path: "{{ patch_staging_dir }}/{{ patch_filename }}"
+  register: patch_file_stat
+  tags: preparation
+
+- name: Fail if patch file is missing
+  fail:
+    msg: "Patch file {{ patch_filename }} not found at {{ patch_staging_dir }}"
+  when: not patch_file_stat.stat.exists
+  tags: preparation
+
+- name: Extract Oracle patch
+  unarchive:
+    src: "{{ patch_staging_dir }}/{{ patch_filename }}"
+    dest: "{{ patch_extract_dir }}"
+    remote_src: yes
+    owner: "{{ oracle_user }}"
+    group: "{{ oracle_group }}"
+    creates: "{{ patch_extract_dir }}/{{ patch_id }}"
+  tags: preparation
+
+- name: Find patch directory
+  find:
+    paths: "{{ patch_extract_dir }}"
+    patterns: "{{ patch_id }}"
+    file_type: directory
+  register: patch_dir_found
+  tags: preparation
+
+- name: Set patch directory variable
+  set_fact:
+    actual_patch_dir: "{{ patch_dir_found.files[0].path if patch_dir_found.files else patch_extract_dir + '/' + patch_id }}"
+  tags: preparation
+
+- name: Verify patch directory structure
+  stat:
+    path: "{{ actual_patch_dir }}/etc/config/inventory"
+  register: patch_inventory_check
+  tags: preparation
+
+- name: Download and update OPatch if needed
+  block:
+    - name: Check current OPatch version
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/OPatch/opatch version | grep "OPatch version" | awk '{print $3}'
+      become_user: "{{ grid_user }}"
+      register: current_opatch_version
+      failed_when: false
+
+    - name: Download OPatch update
+      get_url:
+        url: "{{ opatch_download_url }}"
+        dest: "{{ patch_staging_dir }}/opatch_update.zip"
+        owner: "{{ oracle_user }}"
+        group: "{{ oracle_group }}"
+        mode: '0644'
+      when: current_opatch_version.stdout is version(opatch_version_required, '<')
+
+    - name: Backup current OPatch in Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd $ORACLE_HOME
+        mv OPatch OPatch.backup.$(date +%Y%m%d_%H%M%S)
+      become_user: "{{ grid_user }}"
+      when: current_opatch_version.stdout is version(opatch_version_required, '<')
+
+    - name: Backup current OPatch in Database Home
+      shell: |
+        export ORACLE_HOME="{{ oracle_db_home }}"
+        cd $ORACLE_HOME
+        mv OPatch OPatch.backup.$(date +%Y%m%d_%H%M%S)
+      become_user: "{{ oracle_user }}"
+      when: current_opatch_version.stdout is version(opatch_version_required, '<')
+
+    - name: Extract new OPatch to Grid Infrastructure
+      unarchive:
+        src: "{{ patch_staging_dir }}/opatch_update.zip"
+        dest: "{{ oracle_grid_home }}"
+        remote_src: yes
+        owner: "{{ grid_user }}"
+        group: "{{ oracle_group }}"
+      when: current_opatch_version.stdout is version(opatch_version_required, '<')
+
+    - name: Extract new OPatch to Database Home
+      unarchive:
+        src: "{{ patch_staging_dir }}/opatch_update.zip"
+        dest: "{{ oracle_db_home }}"
+        remote_src: yes
+        owner: "{{ oracle_user }}"
+        group: "{{ oracle_group }}"
+      when: current_opatch_version.stdout is version(opatch_version_required, '<')
+
+  tags: 
+    - preparation
+    - opatch
+
+- name: Verify OPatch functionality in Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch version
+  become_user: "{{ grid_user }}"
+  register: grid_opatch_test
+  tags: preparation
+
+- name: Verify OPatch functionality in Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch version
+  become_user: "{{ oracle_user }}"
+  register: db_opatch_test
+  tags: preparation
+
+- name: Display updated OPatch versions
+  debug:
+    msg:
+      - "Grid Infrastructure OPatch: {{ grid_opatch_test.stdout_lines[0] | default('Error') }}"
+      - "Database Home OPatch: {{ db_opatch_test.stdout_lines[0] | default('Error') }}"
+  tags: preparation
+
+- name: Perform patch conflict analysis for Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    cd {{ actual_patch_dir }}
+    {{ oracle_grid_home }}/OPatch/opatch prereq CheckConflictAgainstOHWithDetail -ph ./
+  become_user: "{{ grid_user }}"
+  register: grid_conflict_check
+  failed_when: false
+  tags: preparation
+
+- name: Perform patch conflict analysis for Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    cd {{ actual_patch_dir }}
+    {{ oracle_db_home }}/OPatch/opatch prereq CheckConflictAgainstOHWithDetail -ph ./
+  become_user: "{{ oracle_user }}"
+  register: db_conflict_check
+  failed_when: false
+  tags: preparation
+
+- name: Display conflict analysis results
+  debug:
+    msg:
+      - "=== Patch Conflict Analysis ==="
+      - "Grid Infrastructure:"
+      - "{{ grid_conflict_check.stdout_lines | default(['No conflicts found']) }}"
+      - "Database Home:"
+      - "{{ db_conflict_check.stdout_lines | default(['No conflicts found']) }}"
+  tags: preparation
+
+- name: Create patch preparation summary
+  debug:
+    msg:
+      - "=== Patch Preparation Summary ==="
+      - "Patch File: {{ patch_filename }}"
+      - "Patch Directory: {{ actual_patch_dir }}"
+      - "Staging Directory: {{ patch_staging_dir }}"
+      - "Backup Location: {{ backup_location }}"
+      - "OPatch Updated: {{ 'Yes' if current_opatch_version.stdout is version(opatch_version_required, '<') else 'No' }}"
+      - "Preparation Status: COMPLETED"
+  tags: preparation 

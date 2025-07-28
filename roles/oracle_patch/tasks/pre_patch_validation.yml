@@ -1,0 +1,146 @@
+---
+# Pre-Patch Validation Tasks
+
+- name: Check if Oracle Grid Infrastructure is running
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl check cluster -all
+  become_user: "{{ grid_user }}"
+  register: grid_status
+  failed_when: false
+  tags: validation
+
+- name: Display Grid Infrastructure status
+  debug:
+    var: grid_status.stdout_lines
+  tags: validation
+
+- name: Check Oracle Database status
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl status database -d {{ item.name }}
+  become_user: "{{ oracle_user }}"
+  register: db_status
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: validation
+
+- name: Display Database status
+  debug:
+    var: db_status.results
+  tags: validation
+
+- name: Check current OPatch version in Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch version
+  become_user: "{{ grid_user }}"
+  register: grid_opatch_version
+  failed_when: false
+  tags: validation
+
+- name: Check current OPatch version in Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch version
+  become_user: "{{ oracle_user }}"
+  register: db_opatch_version
+  failed_when: false
+  tags: validation
+
+- name: Display OPatch versions
+  debug:
+    msg:
+      - "Grid OPatch Version: {{ grid_opatch_version.stdout_lines | default('Not found') }}"
+      - "Database OPatch Version: {{ db_opatch_version.stdout_lines | default('Not found') }}"
+  tags: validation
+
+- name: Check disk space in patch staging directory
+  shell: df -h {{ patch_staging_dir | dirname }}
+  register: disk_space
+  tags: validation
+
+- name: Display disk space
+  debug:
+    var: disk_space.stdout_lines
+  tags: validation
+
+- name: Check available memory
+  shell: free -h
+  register: memory_info
+  tags: validation
+
+- name: Display memory information
+  debug:
+    var: memory_info.stdout_lines
+  tags: validation
+
+- name: Check current patches installed in Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch lspatches
+  become_user: "{{ grid_user }}"
+  register: grid_installed_patches
+  failed_when: false
+  tags: validation
+
+- name: Check current patches installed in Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches
+  become_user: "{{ oracle_user }}"
+  register: db_installed_patches
+  failed_when: false
+  tags: validation
+
+- name: Display currently installed patches
+  debug:
+    msg:
+      - "Grid Infrastructure Patches:"
+      - "{{ grid_installed_patches.stdout_lines | default(['None found']) }}"
+      - "Database Home Patches:"
+      - "{{ db_installed_patches.stdout_lines | default(['None found']) }}"
+  tags: validation
+
+- name: Validate patch is not already applied to Grid Infrastructure
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch lspatches | grep -q "{{ patch_id }}"
+  become_user: "{{ grid_user }}"
+  register: grid_patch_check
+  failed_when: false
+  changed_when: false
+  tags: validation
+
+- name: Validate patch is not already applied to Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches | grep -q "{{ patch_id }}"
+  become_user: "{{ oracle_user }}"
+  register: db_patch_check
+  failed_when: false
+  changed_when: false
+  tags: validation
+
+- name: Check if patch is already applied
+  fail:
+    msg: "Patch {{ patch_id }} is already applied to {{ item.home }}"
+  when: 
+    - not force_patch_application
+    - item.result.rc == 0
+  loop:
+    - { home: "Grid Infrastructure", result: "{{ grid_patch_check }}" }
+    - { home: "Database Home", result: "{{ db_patch_check }}" }
+  tags: validation
+
+- name: Create validation summary
+  debug:
+    msg:
+      - "=== Pre-Patch Validation Summary ==="
+      - "Patch ID: {{ patch_id }}"
+      - "Grid Infrastructure Status: {{ 'RUNNING' if grid_status.rc == 0 else 'NOT RUNNING' }}"
+      - "Database Status: Available in detailed output above"
+      - "Grid Patch Status: {{ 'ALREADY APPLIED' if grid_patch_check.rc == 0 else 'NOT APPLIED' }}"
+      - "Database Patch Status: {{ 'ALREADY APPLIED' if db_patch_check.rc == 0 else 'NOT APPLIED' }}"
+      - "Validation: {{ 'PASSED' if not skip_validations else 'SKIPPED' }}"
+  tags: validation 

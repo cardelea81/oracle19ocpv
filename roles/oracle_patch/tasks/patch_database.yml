@@ -1,0 +1,161 @@
+---
+# Database Home Patching Tasks
+
+- name: Check if Database patch is applicable
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    cd {{ actual_patch_dir }}
+    {{ oracle_db_home }}/OPatch/opatch prereq CheckApplicable -ph ./
+  become_user: "{{ oracle_user }}"
+  register: db_patch_applicable
+  failed_when: false
+  tags: patch_database
+
+- name: Display Database patch applicability
+  debug:
+    var: db_patch_applicable.stdout_lines
+  tags: patch_database
+
+- name: Fail if patch is not applicable to Database Home
+  fail:
+    msg: "Patch {{ patch_id }} is not applicable to Database Home"
+  when: 
+    - not force_patch_application
+    - db_patch_applicable.rc != 0
+  tags: patch_database
+
+- name: Apply patch to Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    cd {{ actual_patch_dir }}
+    {{ oracle_db_home }}/OPatch/opatch apply -silent -oh {{ oracle_db_home }}
+  become_user: "{{ oracle_user }}"
+  register: db_patch_apply
+  async: "{{ patch_apply_timeout }}"
+  poll: 60
+  tags: patch_database
+
+- name: Display Database patch application output
+  debug:
+    var: db_patch_apply.stdout_lines
+  when: db_patch_apply.stdout_lines is defined
+  tags: patch_database
+
+- name: Verify Database patch application
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches | grep "{{ patch_id }}"
+  become_user: "{{ oracle_user }}"
+  register: db_patch_verification
+  retries: 3
+  delay: 30
+  tags: patch_database
+
+- name: Check for conflicting patches in Database Home
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches -conflicts
+  become_user: "{{ oracle_user }}"
+  register: db_patch_conflicts
+  failed_when: false
+  tags: patch_database
+
+- name: Display patch conflicts (if any)
+  debug:
+    msg:
+      - "=== Database Home Patch Conflicts ==="
+      - "{{ db_patch_conflicts.stdout_lines | default(['No conflicts detected']) }}"
+  when: db_patch_conflicts.rc != 0
+  tags: patch_database
+
+- name: Update Oracle inventory after patching
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lsinventory -oh {{ oracle_db_home }}
+  become_user: "{{ oracle_user }}"
+  register: db_inventory_update
+  failed_when: false
+  tags: patch_database
+
+- name: Generate post-patch inventory report
+  copy:
+    dest: "{{ backup_location }}/logs/db_patches_after_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Database Home Patches After {{ patch_id }}
+      ==========================================
+      Date: {{ ansible_date_time.iso8601 }}
+      Oracle Home: {{ oracle_db_home }}
+      
+      {{ db_inventory_update.stdout | default('Unable to generate inventory') }}
+  tags: patch_database
+
+- name: Verify Oracle binary versions
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/sqlplus -v
+  become_user: "{{ oracle_user }}"
+  register: db_binary_version
+  tags: patch_database
+
+- name: Create Database patch summary
+  copy:
+    dest: "{{ backup_location }}/logs/database_patch_summary_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Database Home Patch Summary
+      ===========================
+      Date: {{ ansible_date_time.iso8601 }}
+      Patch ID: {{ patch_id }}
+      Oracle Home: {{ oracle_db_home }}
+      
+      Patch Application Results:
+      Patch Applied: {{ 'SUCCESS' if db_patch_apply is succeeded else 'FAILED' }}
+      Patch Verified: {{ 'YES' if db_patch_verification is succeeded else 'NO' }}
+      
+      Binary Version:
+      {{ db_binary_version.stdout | default('Unable to determine version') }}
+      
+      Post-Patch Actions Required:
+      1. Start Oracle databases
+      2. Run SQL patch scripts if required
+      3. Update database registry
+      4. Validate database functionality
+      
+      Files Generated:
+      - db_patches_after_{{ ansible_date_time.epoch }}.txt
+      - database_patch_summary_{{ ansible_date_time.epoch }}.txt
+  tags: patch_database
+
+- name: Display Database patching summary
+  debug:
+    msg:
+      - "=== Database Home Patching Summary ==="
+      - "Patch ID: {{ patch_id }}"
+      - "Oracle Home: {{ oracle_db_home }}"
+      - "Patch Applied: {{ 'SUCCESS' if db_patch_apply is succeeded else 'FAILED' }}"
+      - "Patch Verified: {{ 'YES' if db_patch_verification is succeeded else 'NO' }}"
+      - "Binary Version: {{ db_binary_version.stdout_lines[0] | default('Unknown') }}"
+  tags: patch_database
+
+- name: Check if SQL patch scripts need to be executed
+  find:
+    paths: "{{ actual_patch_dir }}"
+    patterns: "*.sql"
+    recurse: yes
+  register: sql_patch_scripts
+  tags: patch_database
+
+- name: Display SQL patch scripts found
+  debug:
+    msg:
+      - "SQL patch scripts found: {{ sql_patch_scripts.files | length }}"
+      - "Scripts will need to be executed after database startup"
+      - "Script locations:"
+      - "{{ sql_patch_scripts.files | map(attribute='path') | list }}"
+  when: sql_patch_scripts.files | length > 0
+  tags: patch_database
+
+- name: Save SQL script locations for post-startup execution
+  set_fact:
+    sql_scripts_to_execute: "{{ sql_patch_scripts.files | map(attribute='path') | list }}"
+  when: sql_patch_scripts.files | length > 0
+  tags: patch_database 

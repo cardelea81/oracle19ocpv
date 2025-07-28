@@ -1,0 +1,64 @@
+---
+# Oracle Patch Application Role - Main Tasks
+
+- name: Include pre-patch validation tasks
+  include_tasks: pre_patch_validation.yml
+  tags: 
+    - patch
+    - validation
+    - pre_patch
+
+- name: Include backup tasks
+  include_tasks: backup.yml
+  tags:
+    - patch
+    - backup
+    - pre_patch
+
+- name: Include patch download and preparation tasks
+  include_tasks: patch_preparation.yml
+  tags:
+    - patch
+    - preparation
+    - download
+
+- name: Include database shutdown tasks
+  include_tasks: shutdown_database.yml
+  tags:
+    - patch
+    - shutdown
+
+- name: Include Grid Infrastructure patching tasks
+  include_tasks: patch_grid.yml
+  when: patch_grid_infrastructure | default(true)
+  tags:
+    - patch
+    - grid
+    - apply_patch
+
+- name: Include Database patching tasks
+  include_tasks: patch_database.yml
+  when: patch_database_software | default(true)
+  tags:
+    - patch
+    - database
+    - apply_patch
+
+- name: Include startup tasks
+  include_tasks: startup_database.yml
+  tags:
+    - patch
+    - startup
+
+- name: Include post-patch validation tasks
+  include_tasks: post_patch_validation.yml
+  tags:
+    - patch
+    - validation
+    - post_patch
+
+- name: Include cleanup tasks
+  include_tasks: cleanup.yml
+  tags:
+    - patch
+    - cleanup 

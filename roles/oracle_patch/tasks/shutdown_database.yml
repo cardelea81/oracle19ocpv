@@ -1,0 +1,128 @@
+---
+# Database Shutdown Tasks
+
+- name: Get current database status
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl status database -d {{ item.name }}
+  become_user: "{{ oracle_user }}"
+  register: initial_db_status
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: shutdown
+
+- name: Display initial database status
+  debug:
+    var: initial_db_status.results
+  tags: shutdown
+
+- name: Stop Oracle Database instances
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl stop database -d {{ item.name }} -o immediate
+  become_user: "{{ oracle_user }}"
+  register: db_stop_result
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: shutdown
+
+- name: Wait for database shutdown
+  wait_for:
+    timeout: "{{ shutdown_timeout }}"
+    sleep: 10
+  delegate_to: localhost
+  run_once: true
+  tags: shutdown
+
+- name: Verify database shutdown
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl status database -d {{ item.name }}
+  become_user: "{{ oracle_user }}"
+  register: db_shutdown_verification
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: shutdown
+
+- name: Force stop any remaining database processes
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl stop database -d {{ item.name }} -o abort
+  become_user: "{{ oracle_user }}"
+  when: 
+    - "'is running' in db_shutdown_verification.results[loop_index].stdout"
+  loop: "{{ oracle_databases }}"
+  loop_control:
+    index_var: loop_index
+  failed_when: false
+  tags: shutdown
+
+- name: Stop Oracle listeners
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl stop listener
+  become_user: "{{ oracle_user }}"
+  register: listener_stop_result
+  failed_when: false
+  tags: shutdown
+
+- name: Check if cluster shutdown is required
+  set_fact:
+    should_stop_cluster: "{{ stop_cluster_for_patching and not rolling_patch }}"
+  tags: shutdown
+
+- name: Stop Oracle Clusterware (if required)
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl stop cluster -all
+  become_user: root
+  register: cluster_stop_result
+  when: should_stop_cluster
+  failed_when: false
+  tags: shutdown
+
+- name: Wait for cluster shutdown
+  wait_for:
+    timeout: "{{ shutdown_timeout }}"
+    sleep: 15
+  delegate_to: localhost
+  run_once: true
+  when: should_stop_cluster
+  tags: shutdown
+
+- name: Verify cluster shutdown
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl check cluster -all
+  become_user: "{{ grid_user }}"
+  register: cluster_shutdown_verification
+  when: should_stop_cluster
+  failed_when: false
+  tags: shutdown
+
+- name: Stop Oracle HAS (High Availability Services) if needed
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl stop has
+  become_user: root
+  register: has_stop_result
+  when: should_stop_cluster
+  failed_when: false
+  tags: shutdown
+
+- name: Create shutdown summary
+  debug:
+    msg:
+      - "=== Shutdown Summary ==="
+      - "Database Shutdown: {{ 'COMPLETED' if db_stop_result is succeeded else 'PARTIAL/FAILED' }}"
+      - "Listener Shutdown: {{ 'COMPLETED' if listener_stop_result is succeeded else 'FAILED' }}"
+      - "Cluster Shutdown: {{ 'COMPLETED' if cluster_stop_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "HAS Shutdown: {{ 'COMPLETED' if has_stop_result is succeeded else 'SKIPPED/FAILED' }}"
+      - "Ready for Patching: {{ 'YES' if (db_stop_result is succeeded and listener_stop_result is succeeded) else 'CHECK MANUALLY' }}"
+  tags: shutdown
+
+- name: Pause before proceeding to patching
+  pause:
+    prompt: "Database and services have been stopped. Press Enter to continue with patching or Ctrl+C to abort"
+    seconds: 10
+  tags: shutdown 

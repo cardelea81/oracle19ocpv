@@ -1,0 +1,239 @@
+---
+# Post-Patch Validation Tasks
+
+- name: Validate Grid Infrastructure patch installation
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch lspatches | grep "{{ patch_id }}"
+  become_user: "{{ grid_user }}"
+  register: grid_patch_validation
+  failed_when: false
+  tags: validation
+
+- name: Validate Database Home patch installation
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/OPatch/opatch lspatches | grep "{{ patch_id }}"
+  become_user: "{{ oracle_user }}"
+  register: db_patch_validation
+  failed_when: false
+  tags: validation
+
+- name: Check Grid Infrastructure cluster status
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl stat res -t
+  become_user: "{{ grid_user }}"
+  register: cluster_resources_validation
+  failed_when: false
+  tags: validation
+
+- name: Check ASM disk groups status
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/asmcmd lsdg
+  become_user: "{{ grid_user }}"
+  register: asm_diskgroups_validation
+  failed_when: false
+  tags: validation
+
+- name: Check database status and version
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    export ORACLE_SID="{{ item.instances[0] }}"
+    {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+    SET PAGESIZE 0
+    SET FEEDBACK OFF
+    SELECT 'DB_STATUS:' || status FROM v\$instance;
+    SELECT 'DB_VERSION:' || version FROM v\$instance;
+    SELECT 'PATCH_LEVEL:' || comments FROM dba_registry_history WHERE action_time = (SELECT MAX(action_time) FROM dba_registry_history);
+    EXIT;
+    EOF
+  become_user: "{{ oracle_user }}"
+  register: database_validation
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: validation
+
+- name: Check listener status
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/lsnrctl status
+  become_user: "{{ oracle_user }}"
+  register: listener_validation
+  failed_when: false
+  tags: validation
+
+- name: Validate OCR and voting disk integrity
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/ocrcheck
+    {{ oracle_grid_home }}/bin/crsctl query css votedisk
+  become_user: "{{ grid_user }}"
+  register: ocr_voting_validation
+  failed_when: false
+  tags: validation
+
+- name: Check for Oracle errors in alert logs
+  shell: |
+    find {{ oracle_base }}/diag -name "alert*.log" -newer {{ backup_location }}/backup_summary_*.txt -exec grep -l "ORA-\|ERROR\|FATAL" {} \;
+  register: alert_log_errors
+  failed_when: false
+  tags: validation
+
+- name: Display alert log errors (if any)
+  debug:
+    msg:
+      - "Alert log files with errors found:"
+      - "{{ alert_log_errors.stdout_lines | default(['No errors found']) }}"
+  when: alert_log_errors.stdout_lines | length > 0
+  tags: validation
+
+- name: Check cluster interconnect
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/oifcfg getif
+  become_user: "{{ grid_user }}"
+  register: cluster_interconnect_validation
+  failed_when: false
+  tags: validation
+
+- name: Validate database connectivity from all instances
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    export ORACLE_SID="{{ item.1 }}"
+    {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+    SET PAGESIZE 0
+    SET FEEDBACK OFF
+    SELECT 'Instance ' || instance_name || ' connectivity: SUCCESS' FROM v\$instance;
+    EXIT;
+    EOF
+  become_user: "{{ oracle_user }}"
+  register: instance_connectivity_validation
+  loop: "{{ oracle_databases | subelements('instances') }}"
+  failed_when: false
+  tags: validation
+
+- name: Check database registry consistency
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    export ORACLE_SID="{{ item.instances[0] }}"
+    {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+    SET PAGESIZE 0
+    SET FEEDBACK OFF
+    SELECT 'REGISTRY_CHECK:' || status || ':' || comp_name FROM dba_registry WHERE status != 'VALID';
+    EXIT;
+    EOF
+  become_user: "{{ oracle_user }}"
+  register: registry_validation
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: validation
+
+- name: Generate comprehensive validation report
+  copy:
+    dest: "{{ backup_location }}/logs/post_patch_validation_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Post-Patch Validation Report
+      ============================
+      Date: {{ ansible_date_time.iso8601 }}
+      Patch ID: {{ patch_id }}
+      
+      PATCH INSTALLATION VALIDATION:
+      ==============================
+      Grid Infrastructure Patch: {{ 'INSTALLED' if grid_patch_validation.rc == 0 else 'NOT FOUND' }}
+      Database Home Patch: {{ 'INSTALLED' if db_patch_validation.rc == 0 else 'NOT FOUND' }}
+      
+      CLUSTER VALIDATION:
+      ==================
+      Cluster Resources Status:
+      {{ cluster_resources_validation.stdout | default('Unable to check') }}
+      
+      ASM Disk Groups:
+      {{ asm_diskgroups_validation.stdout | default('Unable to check') }}
+      
+      OCR/Voting Disk Status:
+      {{ ocr_voting_validation.stdout | default('Unable to check') }}
+      
+      DATABASE VALIDATION:
+      ===================
+      {% for db_result in database_validation.results %}
+      Database {{ oracle_databases[loop.index0].name }}:
+      {{ db_result.stdout | default('Unable to check') }}
+      
+      {% endfor %}
+      
+      CONNECTIVITY VALIDATION:
+      =======================
+      Listener Status: {{ 'RUNNING' if 'READY' in listener_validation.stdout else 'CHECK REQUIRED' }}
+      
+      Instance Connectivity:
+      {% for instance_result in instance_connectivity_validation.results %}
+      {{ instance_result.stdout | default('Unable to check') }}
+      {% endfor %}
+      
+      REGISTRY VALIDATION:
+      ===================
+      {% for reg_result in registry_validation.results %}
+      Database {{ oracle_databases[loop.index0].name }} Registry:
+      {{ reg_result.stdout | default('All components valid') }}
+      {% endfor %}
+      
+      NETWORK VALIDATION:
+      ==================
+      Cluster Interconnect:
+      {{ cluster_interconnect_validation.stdout | default('Unable to check') }}
+      
+      ERROR ANALYSIS:
+      ==============
+      Alert Log Errors: {{ alert_log_errors.stdout_lines | length }} files with errors
+      {% if alert_log_errors.stdout_lines | length > 0 %}
+      Files to review:
+      {% for error_file in alert_log_errors.stdout_lines %}
+      - {{ error_file }}
+      {% endfor %}
+      {% endif %}
+      
+      OVERALL VALIDATION STATUS:
+      =========================
+      Patch Installation: {{ 'SUCCESS' if (grid_patch_validation.rc == 0 and db_patch_validation.rc == 0) else 'PARTIAL/FAILED' }}
+      Cluster Health: {{ 'HEALTHY' if cluster_resources_validation.rc == 0 else 'CHECK REQUIRED' }}
+      Database Health: {{ 'HEALTHY' if database_validation.results | selectattr('rc', 'equalto', 0) | list | length == oracle_databases | length else 'CHECK REQUIRED' }}
+      
+      RECOMMENDATIONS:
+      ===============
+      {% if alert_log_errors.stdout_lines | length > 0 %}
+      1. Review alert log files for any critical errors
+      {% endif %}
+      {% if registry_validation.results | selectattr('stdout', 'search', 'REGISTRY_CHECK') | list | length > 0 %}
+      2. Investigate database registry inconsistencies
+      {% endif %}
+      3. Perform application connectivity tests
+      4. Monitor system performance for 24-48 hours
+      5. Update documentation and monitoring systems
+  tags: validation
+
+- name: Display validation summary
+  debug:
+    msg:
+      - "=== Post-Patch Validation Summary ==="
+      - "Patch Installation:"
+      - "  Grid Infrastructure: {{ 'SUCCESS' if grid_patch_validation.rc == 0 else 'FAILED' }}"
+      - "  Database Home: {{ 'SUCCESS' if db_patch_validation.rc == 0 else 'FAILED' }}"
+      - "Cluster Health:"
+      - "  Resources: {{ 'HEALTHY' if cluster_resources_validation.rc == 0 else 'CHECK REQUIRED' }}"
+      - "  ASM: {{ 'HEALTHY' if asm_diskgroups_validation.rc == 0 else 'CHECK REQUIRED' }}"
+      - "  OCR/Voting: {{ 'HEALTHY' if ocr_voting_validation.rc == 0 else 'CHECK REQUIRED' }}"
+      - "Database Health:"
+      - "  Instances: {{ database_validation.results | selectattr('rc', 'equalto', 0) | list | length }}/{{ oracle_databases | length }} healthy"
+      - "  Connectivity: {{ instance_connectivity_validation.results | selectattr('rc', 'equalto', 0) | list | length }}/{{ instance_connectivity_validation.results | length }} successful"
+      - "Alert Log Errors: {{ alert_log_errors.stdout_lines | length }} files need review"
+      - ""
+      - "Overall Status: {{ 'SUCCESS' if (grid_patch_validation.rc == 0 and db_patch_validation.rc == 0 and cluster_resources_validation.rc == 0) else 'REQUIRES ATTENTION' }}"
+  tags: validation
+
+- name: Set validation facts
+  set_fact:
+    patch_validation_successful: "{{ (grid_patch_validation.rc == 0 and db_patch_validation.rc == 0 and cluster_resources_validation.rc == 0) }}"
+    validation_warnings: "{{ alert_log_errors.stdout_lines | length + (registry_validation.results | selectattr('stdout', 'search', 'REGISTRY_CHECK') | list | length) }}"
+  tags: validation 

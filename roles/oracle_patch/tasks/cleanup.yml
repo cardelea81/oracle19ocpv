@@ -1,0 +1,161 @@
+---
+# Cleanup Tasks
+
+- name: Remove patch staging files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ patch_staging_dir }}/{{ patch_filename }}"
+    - "{{ patch_staging_dir }}/opatch_update.zip"
+  when: cleanup_patch_files | default(true)
+  tags: cleanup
+
+- name: Clean up extracted patch directory
+  file:
+    path: "{{ patch_extract_dir }}"
+    state: absent
+  when: cleanup_patch_files | default(true)
+  tags: cleanup
+
+- name: Archive patch logs
+  shell: |
+    cd {{ backup_location }}/logs
+    tar -czf patch_logs_{{ patch_id }}_{{ ansible_date_time.epoch }}.tar.gz *.txt
+    find . -name "*.txt" -not -name "patch_logs_*" -delete
+  when: archive_logs | default(true)
+  tags: cleanup
+
+- name: Remove old OPatch backups (keep last 3)
+  shell: |
+    cd {{ oracle_grid_home | dirname }}
+    ls -dt OPatch.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf
+    cd {{ oracle_db_home | dirname }}
+    ls -dt OPatch.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf
+  failed_when: false
+  tags: cleanup
+
+- name: Clean up Oracle temp directories
+  shell: |
+    find /tmp -name "*oracle*" -type d -mtime +1 -exec rm -rf {} \; 2>/dev/null || true
+    find {{ oracle_base }}/cfgtoollogs -name "*.log" -mtime +7 -delete 2>/dev/null || true
+  failed_when: false
+  tags: cleanup
+
+- name: Update system monitoring (if applicable)
+  debug:
+    msg: 
+      - "Update your monitoring systems with the following information:"
+      - "Patch ID: {{ patch_id }}"
+      - "Patch Date: {{ ansible_date_time.iso8601 }}"
+      - "Grid Infrastructure Version: Check with 'crsctl query crs activeversion'"
+      - "Database Version: Check with 'select version from v$instance;'"
+  tags: cleanup
+
+- name: Generate final patch report
+  copy:
+    dest: "{{ backup_location }}/PATCH_COMPLETION_REPORT_{{ patch_id }}.txt"
+    content: |
+      ================================================================
+      ORACLE PATCH COMPLETION REPORT
+      ================================================================
+      
+      PATCH INFORMATION:
+      ==================
+      Patch ID: {{ patch_id }}
+      Patch Description: {{ patch_description }}
+      Patch File: {{ patch_filename }}
+      Application Date: {{ ansible_date_time.iso8601 }}
+      Applied By: Ansible Automation
+      
+      ENVIRONMENT DETAILS:
+      ====================
+      Grid Infrastructure Home: {{ oracle_grid_home }}
+      Database Home: {{ oracle_db_home }}
+      Oracle Base: {{ oracle_base }}
+      Cluster Nodes: {{ groups['oracle_rac'] | join(', ') }}
+      
+      PATCH APPLICATION SUMMARY:
+      ==========================
+      Grid Infrastructure Patch: {{ 'SUCCESS' if grid_patch_validation is defined and grid_patch_validation.rc == 0 else 'CHECK REQUIRED' }}
+      Database Home Patch: {{ 'SUCCESS' if db_patch_validation is defined and db_patch_validation.rc == 0 else 'CHECK REQUIRED' }}
+      
+      POST-PATCH VALIDATION:
+      ======================
+      Overall Validation: {{ 'PASSED' if patch_validation_successful | default(false) else 'REQUIRES ATTENTION' }}
+      Validation Warnings: {{ validation_warnings | default(0) }}
+      
+      BACKUP INFORMATION:
+      ===================
+      Backup Location: {{ backup_location }}
+      Grid Home Backup: {{ 'AVAILABLE' if backup_enabled else 'SKIPPED' }}
+      Database Home Backup: {{ 'AVAILABLE' if backup_enabled else 'SKIPPED' }}
+      OCR Backup: {{ 'AVAILABLE' if backup_enabled else 'SKIPPED' }}
+      
+      NEXT STEPS:
+      ===========
+      1. Verify application functionality
+      2. Run performance tests
+      3. Monitor system for 24-48 hours
+      4. Update change management records
+      5. Schedule validation of all dependent systems
+      
+      ROLLBACK INFORMATION:
+      =====================
+      {% if enable_rollback %}
+      Rollback Available: YES
+      Rollback Command: ansible-playbook -i inventory patch_rollback.yml -e patch_id={{ patch_id }}
+      Rollback Timeout: Check Oracle documentation for your version
+      {% else %}
+      Rollback Available: NO - Backups available for manual restore
+      {% endif %}
+      
+      CONTACT INFORMATION:
+      ====================
+      For issues or questions regarding this patch:
+      - Check Oracle Support for known issues with patch {{ patch_id }}
+      - Review log files in {{ backup_location }}/logs/
+      - Contact DBA team for database-specific issues
+      
+      ================================================================
+      END OF REPORT
+      ================================================================
+  tags: cleanup
+
+- name: Display cleanup summary
+  debug:
+    msg:
+      - "=== Cleanup Summary ==="
+      - "Patch files cleaned: {{ 'YES' if cleanup_patch_files | default(true) else 'NO' }}"
+      - "Logs archived: {{ 'YES' if archive_logs | default(true) else 'NO' }}"
+      - "Old backups cleaned: YES"
+      - "Final report location: {{ backup_location }}/PATCH_COMPLETION_REPORT_{{ patch_id }}.txt"
+      - ""
+      - "PATCH APPLICATION COMPLETED"
+      - "Validation Status: {{ 'PASSED' if patch_validation_successful | default(false) else 'REQUIRES ATTENTION' }}"
+  tags: cleanup
+
+- name: Final patch completion notification
+  debug:
+    msg:
+      - "========================================================"
+      - "ORACLE PATCH {{ patch_id }} APPLICATION COMPLETED"
+      - "========================================================"
+      - ""
+      - "Status: {{ 'SUCCESS' if patch_validation_successful | default(false) else 'COMPLETED WITH WARNINGS' }}"
+      - "Validation Warnings: {{ validation_warnings | default(0) }}"
+      - ""
+      - "Important Files:"
+      - "- Final Report: {{ backup_location }}/PATCH_COMPLETION_REPORT_{{ patch_id }}.txt"
+      - "- Validation Report: {{ backup_location }}/logs/post_patch_validation_*.txt"
+      - "- Backup Location: {{ backup_location }}"
+      - ""
+      - "Next Steps:"
+      - "1. Review the final report and validation results"
+      - "2. Test application functionality"
+      - "3. Monitor system performance"
+      - "4. Update documentation and monitoring systems"
+      - ""
+      - "Thank you for using Oracle Patch Automation!"
+      - "========================================================"
+  tags: cleanup 

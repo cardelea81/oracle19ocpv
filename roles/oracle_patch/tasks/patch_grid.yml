@@ -1,0 +1,160 @@
+---
+# Grid Infrastructure Patching Tasks
+
+- name: Check if Grid Infrastructure patch is applicable
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    cd {{ actual_patch_dir }}
+    {{ oracle_grid_home }}/OPatch/opatch prereq CheckApplicable -ph ./
+  become_user: "{{ grid_user }}"
+  register: grid_patch_applicable
+  failed_when: false
+  tags: patch_grid
+
+- name: Display Grid Infrastructure patch applicability
+  debug:
+    var: grid_patch_applicable.stdout_lines
+  tags: patch_grid
+
+- name: Fail if patch is not applicable to Grid Infrastructure
+  fail:
+    msg: "Patch {{ patch_id }} is not applicable to Grid Infrastructure"
+  when: 
+    - not force_patch_application
+    - grid_patch_applicable.rc != 0
+  tags: patch_grid
+
+- name: Apply patch to Grid Infrastructure (Rolling patch method)
+  block:
+    - name: Apply patch to local node Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ actual_patch_dir }}
+        {{ oracle_grid_home }}/OPatch/opatchauto apply -oh {{ oracle_grid_home }}
+      become_user: root
+      register: grid_patch_apply_rolling
+      async: "{{ patch_apply_timeout }}"
+      poll: 60
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+
+    - name: Wait for Grid Infrastructure patch completion on first node
+      async_status:
+        jid: "{{ grid_patch_apply_rolling.ansible_job_id }}"
+      register: grid_patch_job_result
+      until: grid_patch_job_result.finished
+      retries: 60
+      delay: 60
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+
+    - name: Apply patch to second node Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ actual_patch_dir }}
+        {{ oracle_grid_home }}/OPatch/opatchauto apply -oh {{ oracle_grid_home }}
+      become_user: root
+      register: grid_patch_apply_node2
+      async: "{{ patch_apply_timeout }}"
+      poll: 60
+      when: inventory_hostname == groups['oracle_rac_node2'][0]
+
+  when: rolling_patch
+  tags: patch_grid
+
+- name: Apply patch to Grid Infrastructure (Non-rolling method)
+  block:
+    - name: Apply patch to Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ actual_patch_dir }}
+        {{ oracle_grid_home }}/OPatch/opatch apply -silent -oh {{ oracle_grid_home }}
+      become_user: "{{ grid_user }}"
+      register: grid_patch_apply_nonrolling
+      async: "{{ patch_apply_timeout }}"
+      poll: 60
+
+  when: not rolling_patch
+  tags: patch_grid
+
+- name: Verify Grid Infrastructure patch application
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/OPatch/opatch lspatches | grep "{{ patch_id }}"
+  become_user: "{{ grid_user }}"
+  register: grid_patch_verification
+  retries: 3
+  delay: 30
+  tags: patch_grid
+
+- name: Start Grid Infrastructure after patching
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl start has
+  become_user: root
+  register: grid_startup_after_patch
+  when: should_stop_cluster
+  tags: patch_grid
+
+- name: Wait for Grid Infrastructure startup
+  wait_for:
+    timeout: "{{ startup_timeout }}"
+    sleep: 30
+  delegate_to: localhost
+  run_once: true
+  when: should_stop_cluster
+  tags: patch_grid
+
+- name: Check Grid Infrastructure status after patching
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl check cluster -all
+  become_user: "{{ grid_user }}"
+  register: grid_status_after_patch
+  retries: 5
+  delay: 60
+  failed_when: false
+  tags: patch_grid
+
+- name: Display Grid Infrastructure status after patching
+  debug:
+    var: grid_status_after_patch.stdout_lines
+  tags: patch_grid
+
+- name: Create Grid Infrastructure patch summary
+  copy:
+    dest: "{{ backup_location }}/logs/grid_patch_summary_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Grid Infrastructure Patch Summary
+      ================================
+      Date: {{ ansible_date_time.iso8601 }}
+      Patch ID: {{ patch_id }}
+      Patch Method: {{ 'Rolling' if rolling_patch else 'Non-rolling' }}
+      
+      Patch Application Results:
+      {% if rolling_patch %}
+      Node 1 Patch: {{ 'SUCCESS' if grid_patch_apply_rolling is succeeded else 'FAILED' }}
+      Node 2 Patch: {{ 'SUCCESS' if grid_patch_apply_node2 is succeeded else 'FAILED' }}
+      {% else %}
+      Non-rolling Patch: {{ 'SUCCESS' if grid_patch_apply_nonrolling is succeeded else 'FAILED' }}
+      {% endif %}
+      
+      Verification:
+      Patch Installed: {{ 'YES' if grid_patch_verification is succeeded else 'NO' }}
+      
+      Grid Infrastructure Status:
+      {{ grid_status_after_patch.stdout | default('Unable to determine status') }}
+      
+      Post-Patch Actions Required:
+      1. Verify cluster resources are online
+      2. Check ASM disk groups
+      3. Validate voting disks and OCR
+  tags: patch_grid
+
+- name: Display Grid Infrastructure patching summary
+  debug:
+    msg:
+      - "=== Grid Infrastructure Patching Summary ==="
+      - "Patch ID: {{ patch_id }}"
+      - "Patch Method: {{ 'Rolling' if rolling_patch else 'Non-rolling' }}"
+      - "Patch Applied: {{ 'SUCCESS' if grid_patch_verification is succeeded else 'FAILED' }}"
+      - "Grid Status: {{ 'RUNNING' if grid_status_after_patch.rc == 0 else 'CHECK REQUIRED' }}"
+  tags: patch_grid 

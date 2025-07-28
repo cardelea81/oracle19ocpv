@@ -1,0 +1,212 @@
+---
+# Database Startup Tasks after Patching
+
+- name: Start Oracle Clusterware (if it was stopped)
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl start cluster -all
+  become_user: root
+  register: cluster_start_result
+  when: should_stop_cluster | default(false)
+  failed_when: false
+  tags: startup
+
+- name: Wait for Grid Infrastructure startup
+  wait_for:
+    timeout: "{{ startup_timeout }}"
+    sleep: 30
+  delegate_to: localhost
+  run_once: true
+  when: should_stop_cluster | default(false)
+  tags: startup
+
+- name: Check Grid Infrastructure status
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/crsctl check cluster -all
+  become_user: "{{ grid_user }}"
+  register: grid_status_startup
+  retries: 10
+  delay: 30
+  until: grid_status_startup.rc == 0
+  failed_when: false
+  tags: startup
+
+- name: Display Grid Infrastructure status
+  debug:
+    var: grid_status_startup.stdout_lines
+  tags: startup
+
+- name: Check ASM status
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/srvctl status asm
+  become_user: "{{ grid_user }}"
+  register: asm_status_startup
+  retries: 5
+  delay: 60
+  failed_when: false
+  tags: startup
+
+- name: Start ASM if not running
+  shell: |
+    export ORACLE_HOME="{{ oracle_grid_home }}"
+    {{ oracle_grid_home }}/bin/srvctl start asm
+  become_user: "{{ grid_user }}"
+  when: "'is not running' in asm_status_startup.stdout"
+  register: asm_start_result
+  tags: startup
+
+- name: Wait for ASM startup
+  wait_for:
+    timeout: 300
+    sleep: 15
+  delegate_to: localhost
+  run_once: true
+  when: asm_start_result is defined and asm_start_result.changed
+  tags: startup
+
+- name: Start Oracle listeners
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl start listener
+  become_user: "{{ oracle_user }}"
+  register: listener_start_result
+  failed_when: false
+  tags: startup
+
+- name: Start Oracle Database instances
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl start database -d {{ item.name }}
+  become_user: "{{ oracle_user }}"
+  register: db_start_result
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: startup
+
+- name: Wait for database startup
+  wait_for:
+    timeout: "{{ startup_timeout }}"
+    sleep: 30
+  delegate_to: localhost
+  run_once: true
+  tags: startup
+
+- name: Verify database startup
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    {{ oracle_db_home }}/bin/srvctl status database -d {{ item.name }}
+  become_user: "{{ oracle_user }}"
+  register: db_startup_verification
+  loop: "{{ oracle_databases }}"
+  retries: 5
+  delay: 30
+  tags: startup
+
+- name: Display database startup status
+  debug:
+    var: db_startup_verification.results
+  tags: startup
+
+- name: Execute SQL patch scripts (if any)
+  block:
+    - name: Connect to database and execute SQL scripts
+      shell: |
+        export ORACLE_HOME="{{ oracle_db_home }}"
+        export ORACLE_SID="{{ item.1 }}"
+        {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+        @{{ item.0 }}
+        EXIT;
+        EOF
+      become_user: "{{ oracle_user }}"
+      register: sql_script_execution
+      loop: "{{ sql_scripts_to_execute | default([]) | product(oracle_databases[0].instances) | list }}"
+      when: sql_scripts_to_execute is defined and sql_scripts_to_execute | length > 0
+      failed_when: false
+
+    - name: Display SQL script execution results
+      debug:
+        var: sql_script_execution.results
+      when: sql_scripts_to_execute is defined and sql_scripts_to_execute | length > 0
+
+  tags: startup
+
+- name: Check database connectivity
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    export ORACLE_SID="{{ item.instances[0] }}"
+    {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+    SELECT 'Database connectivity: SUCCESS' FROM dual;
+    SELECT 'Current patch level: ' || version FROM v\$instance;
+    EXIT;
+    EOF
+  become_user: "{{ oracle_user }}"
+  register: db_connectivity_test
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: startup
+
+- name: Display database connectivity test results
+  debug:
+    var: db_connectivity_test.results
+  tags: startup
+
+- name: Update database registry (if needed)
+  shell: |
+    export ORACLE_HOME="{{ oracle_db_home }}"
+    export ORACLE_SID="{{ item.instances[0] }}"
+    {{ oracle_db_home }}/bin/sqlplus -s / as sysdba << EOF
+    @?/rdbms/admin/catbundle.sql psu apply;
+    COMMIT;
+    EXIT;
+    EOF
+  become_user: "{{ oracle_user }}"
+  register: db_registry_update
+  loop: "{{ oracle_databases }}"
+  failed_when: false
+  tags: startup
+
+- name: Display database registry update results
+  debug:
+    var: db_registry_update.results
+  when: db_registry_update.results is defined
+  tags: startup
+
+- name: Generate startup summary
+  copy:
+    dest: "{{ backup_location }}/logs/startup_summary_{{ ansible_date_time.epoch }}.txt"
+    content: |
+      Post-Patch Startup Summary
+      =========================
+      Date: {{ ansible_date_time.iso8601 }}
+      Patch ID: {{ patch_id }}
+      
+      Startup Results:
+      Grid Infrastructure: {{ 'SUCCESS' if grid_status_startup.rc == 0 else 'FAILED' }}
+      ASM: {{ 'SUCCESS' if 'is running' in asm_status_startup.stdout else 'CHECK REQUIRED' }}
+      Listeners: {{ 'SUCCESS' if listener_start_result.rc == 0 else 'FAILED' }}
+      {% for db in oracle_databases %}
+      Database {{ db.name }}: {{ 'SUCCESS' if db_startup_verification.results[loop.index0].rc == 0 else 'FAILED' }}
+      {% endfor %}
+      
+      SQL Scripts Executed: {{ 'YES' if sql_scripts_to_execute is defined and sql_scripts_to_execute | length > 0 else 'NO' }}
+      Database Registry Updated: {{ 'SUCCESS' if db_registry_update is succeeded else 'CHECK REQUIRED' }}
+      
+      Next Steps:
+      1. Verify application connectivity
+      2. Run application-specific tests
+      3. Monitor database performance
+      4. Update monitoring systems
+  tags: startup
+
+- name: Display startup summary
+  debug:
+    msg:
+      - "=== Post-Patch Startup Summary ==="
+      - "Grid Infrastructure: {{ 'RUNNING' if grid_status_startup.rc == 0 else 'CHECK REQUIRED' }}"
+      - "ASM: {{ 'RUNNING' if 'is running' in asm_status_startup.stdout else 'CHECK REQUIRED' }}"
+      - "Listeners: {{ 'STARTED' if listener_start_result.rc == 0 else 'CHECK REQUIRED' }}"
+      - "Databases: {{ db_startup_verification.results | selectattr('rc', 'equalto', 0) | list | length }}/{{ oracle_databases | length }} started successfully"
+      - "Database Registry: {{ 'UPDATED' if db_registry_update is succeeded else 'CHECK REQUIRED' }}"
+  tags: startup 

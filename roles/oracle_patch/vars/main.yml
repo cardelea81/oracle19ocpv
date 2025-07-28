@@ -1,0 +1,62 @@
+---
+# Oracle Patch Variables
+
+# Patch Information
+patch_id: "36233126"
+patch_version: "190000"
+patch_filename: "p36233126_190000_Linux-x86-64.zip"
+patch_description: "Oracle Database 19c Release Update"
+
+# Patch URLs and Locations
+patch_download_url: "http://192.168.122.1/oracle19/patches/{{ patch_filename }}"
+patch_staging_dir: "/tmp/oracle_patches"
+patch_extract_dir: "{{ patch_staging_dir }}/{{ patch_id }}"
+
+# Oracle Environment
+oracle_grid_home: "/services/oracle/grid/19.3/grid_home"
+oracle_db_home: "/services/oracle/db/19.3/db_home"
+oracle_base: "/services/oracle"
+oracle_inventory: "/services/oracle/grid/oraInventory"
+
+# Patch Configuration
+patch_grid_infrastructure: true
+patch_database_software: true
+stop_cluster_for_patching: true
+rolling_patch: false  # Set to true for rolling patches (if supported)
+
+# Backup Configuration
+backup_enabled: true
+backup_location: "/backup/oracle_patch_{{ ansible_date_time.epoch }}"
+backup_oracle_homes: true
+backup_ocr_voting: true
+
+# OPatch Configuration
+opatch_version_required: "12.2.0.1.42"
+opatch_download_url: "http://192.168.122.1/oracle19/opatch/p6880880_190000_Linux-x86-64.zip"
+
+# Database Information
+oracle_databases:
+  - name: "ORCL"
+    oracle_home: "{{ oracle_db_home }}"
+    instances:
+      - "ORCL1"
+      - "ORCL2"
+
+# Users and Groups
+oracle_user: "oracle"
+grid_user: "grid"
+oracle_group: "oinstall"
+dba_group: "dba"
+
+# Timeouts (in seconds)
+shutdown_timeout: 600
+startup_timeout: 900
+patch_apply_timeout: 3600
+
+# Validation Settings
+skip_validations: false
+force_patch_application: false
+
+# Rollback Configuration
+enable_rollback: true
+rollback_patch_id: ""  # Set this for rollback operations 

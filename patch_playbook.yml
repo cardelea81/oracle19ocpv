@@ -1,0 +1,56 @@
+---
+- name: Oracle RAC Patch Application
+  hosts: oracle_rac
+  become: yes
+  gather_facts: yes
+  serial: "{{ '100%' if not rolling_patch | default(false) else '50%' }}"
+  
+  vars_files:
+    - vars/oracle_rac_vars.yml
+  
+  roles:
+    - oracle_patch
+  
+  handlers:
+    - name: restart chronyd
+      systemd:
+        name: chronyd
+        state: restarted
+    
+    - name: restart oracle services
+      debug:
+        msg: "Oracle services restart handled by patch role"
+
+  post_tasks:
+    - name: Send patch completion notification
+      debug:
+        msg:
+          - "Patch {{ patch_id }} application completed on {{ inventory_hostname }}"
+          - "Check {{ backup_location }}/PATCH_COMPLETION_REPORT_{{ patch_id }}.txt for details"
+      tags: notification
+
+- name: Oracle RAC Patch Summary
+  hosts: oracle_rac_node1
+  become: no
+  gather_facts: no
+  run_once: true
+  
+  tasks:
+    - name: Generate cluster-wide patch summary
+      debug:
+        msg:
+          - "=============================================="
+          - "CLUSTER-WIDE PATCH SUMMARY"
+          - "=============================================="
+          - "Patch ID: {{ patch_id }}"
+          - "Patch Description: {{ patch_description }}"
+          - "Nodes Patched: {{ groups['oracle_rac'] | length }}"
+          - "Application Method: {{ 'Rolling' if rolling_patch | default(false) else 'Non-rolling' }}"
+          - "Completion Time: {{ ansible_date_time.iso8601 }}"
+          - ""
+          - "Next Steps:"
+          - "1. Review individual node reports"
+          - "2. Perform comprehensive testing"
+          - "3. Update monitoring and documentation"
+          - "=============================================="
+      tags: summary 
