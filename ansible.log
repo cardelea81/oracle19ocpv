@@ -1,0 +1,229 @@
+2025-07-28 06:07:49,412 p=2449 u=cardelea n=ansible | ERROR! Empty playbook, nothing to do: /home/cardelea/oracle19ocpv/oracle-rac-playbook.yml
+2025-07-28 06:08:54,260 p=2453 u=cardelea n=ansible | ERROR! Empty playbook, nothing to do: /home/cardelea/oracle19ocpv/oracle-rac-playbook.yml
+2025-07-28 06:09:35,733 p=2464 u=cardelea n=ansible | PLAY [all] ***************************************************************************************************************************************
+2025-07-28 06:09:36,058 p=2464 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:09:45,697 p=2464 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:09:46,111 p=2464 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:09:46,465 p=2464 u=cardelea n=ansible | PLAY [oracle-node01.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:09:46,706 p=2464 u=cardelea n=ansible | PLAY [oracle-node02.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:09:46,885 p=2464 u=cardelea n=ansible | PLAY [oracle-node02.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:09:47,186 p=2464 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:09:47,187 p=2464 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:09:47,187 p=2464 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:10:07,032 p=2490 u=cardelea n=ansible | PLAY [all] ***************************************************************************************************************************************
+2025-07-28 06:10:07,069 p=2490 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:10:12,388 p=2490 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:10:13,321 p=2490 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:10:13,613 p=2490 u=cardelea n=ansible | PLAY [oracle-node01.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:10:13,753 p=2490 u=cardelea n=ansible | PLAY [oracle-node02.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:10:13,864 p=2490 u=cardelea n=ansible | PLAY [oracle-node02.lab.dev.example.com] *********************************************************************************************************
+2025-07-28 06:10:13,984 p=2490 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:10:13,986 p=2490 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:10:13,987 p=2490 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:10:35,561 p=2507 u=cardelea n=ansible | PLAY [all] ***************************************************************************************************************************************
+2025-07-28 06:10:35,609 p=2507 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:10:41,370 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:10:41,879 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:10:41,950 p=2507 u=cardelea n=ansible | TASK [ensure a list of packages installed] *******************************************************************************************************
+2025-07-28 06:10:58,311 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:10:58,330 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:10:58,365 p=2507 u=cardelea n=ansible | TASK [Set authorized key for root copying it from current user] **********************************************************************************
+2025-07-28 06:11:00,020 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:00,048 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:00,093 p=2507 u=cardelea n=ansible | TASK [clean yum cache] ***************************************************************************************************************************
+2025-07-28 06:11:03,100 p=2507 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:03,590 p=2507 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:03,620 p=2507 u=cardelea n=ansible | TASK [Link Pyhon3] *******************************************************************************************************************************
+2025-07-28 06:11:04,898 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:05,065 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:05,092 p=2507 u=cardelea n=ansible | TASK [ensure SELINUX IS IN PERMISIVE MODE] *******************************************************************************************************
+2025-07-28 06:11:07,126 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:07,213 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:07,261 p=2507 u=cardelea n=ansible | TASK [Create a directory gridhome] ***************************************************************************************************************
+2025-07-28 06:11:08,056 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:08,401 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:08,429 p=2507 u=cardelea n=ansible | TASK [Create grid base] **************************************************************************************************************************
+2025-07-28 06:11:09,363 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:09,505 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:09,521 p=2507 u=cardelea n=ansible | TASK [Create ora home] ***************************************************************************************************************************
+2025-07-28 06:11:10,465 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:10,497 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:10,524 p=2507 u=cardelea n=ansible | TASK [Add group asmdba] **************************************************************************************************************************
+2025-07-28 06:11:11,658 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:11,714 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:11,733 p=2507 u=cardelea n=ansible | TASK [Add group asmoper] *************************************************************************************************************************
+2025-07-28 06:11:12,391 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:12,440 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:12,462 p=2507 u=cardelea n=ansible | TASK [Add group asmadmin] ************************************************************************************************************************
+2025-07-28 06:11:13,237 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:13,331 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:13,358 p=2507 u=cardelea n=ansible | TASK [Add group dba] *****************************************************************************************************************************
+2025-07-28 06:11:14,324 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:14,380 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:14,408 p=2507 u=cardelea n=ansible | TASK [Add group oinstall] ************************************************************************************************************************
+2025-07-28 06:11:15,426 p=2507 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:11:15,446 p=2507 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:11:15,483 p=2507 u=cardelea n=ansible | TASK [add hosts file] ****************************************************************************************************************************
+2025-07-28 06:11:15,990 p=2507 u=cardelea n=ansible | An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+2025-07-28 06:11:15,993 p=2507 u=cardelea n=ansible | fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  msg: |-
+    Could not find or access 'etc/oracle19hosts.j2'
+    Searched in:
+            /home/cardelea/oracle19ocpv/files/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/files/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/etc/oracle19hosts.j2 on the Ansible Controller.
+    If you are using a module and expect the file to exist on the remote, see the remote_src option
+2025-07-28 06:11:15,994 p=2507 u=cardelea n=ansible | An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+2025-07-28 06:11:15,995 p=2507 u=cardelea n=ansible | fatal: [oracle-node01.lab.dev.example.com]: FAILED! => changed=false 
+  msg: |-
+    Could not find or access 'etc/oracle19hosts.j2'
+    Searched in:
+            /home/cardelea/oracle19ocpv/files/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/files/etc/oracle19hosts.j2
+            /home/cardelea/oracle19ocpv/etc/oracle19hosts.j2 on the Ansible Controller.
+    If you are using a module and expect the file to exist on the remote, see the remote_src option
+2025-07-28 06:11:15,998 p=2507 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:11:15,999 p=2507 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=14   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:11:15,999 p=2507 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=14   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:13:47,722 p=2583 u=cardelea n=ansible | PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-28 06:13:47,837 p=2583 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:13:52,297 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:13:54,307 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:13:54,438 p=2583 u=cardelea n=ansible | TASK [include_tasks] *****************************************************************************************************************************
+2025-07-28 06:13:54,639 p=2583 u=cardelea n=ansible | included: /home/cardelea/oracle19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-28 06:13:54,681 p=2583 u=cardelea n=ansible | TASK [Install required packages] *****************************************************************************************************************
+2025-07-28 06:13:59,995 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:16,654 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:16,720 p=2583 u=cardelea n=ansible | TASK [Set authorized key for root] ***************************************************************************************************************
+2025-07-28 06:14:19,203 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:19,325 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:19,359 p=2583 u=cardelea n=ansible | TASK [Clean yum cache] ***************************************************************************************************************************
+2025-07-28 06:14:23,274 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:24,137 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:24,175 p=2583 u=cardelea n=ansible | TASK [Link Python3 to Python] ********************************************************************************************************************
+2025-07-28 06:14:25,538 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:25,587 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:25,616 p=2583 u=cardelea n=ansible | TASK [Ensure SELinux is in permissive mode] ******************************************************************************************************
+2025-07-28 06:14:27,698 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:27,719 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:27,787 p=2583 u=cardelea n=ansible | TASK [Configure hosts file] **********************************************************************************************************************
+2025-07-28 06:14:32,372 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:32,587 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:32,619 p=2583 u=cardelea n=ansible | TASK [Configure Oracle limits] *******************************************************************************************************************
+2025-07-28 06:14:35,201 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:35,258 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:35,285 p=2583 u=cardelea n=ansible | TASK [Configure kernel parameters] ***************************************************************************************************************
+2025-07-28 06:14:38,048 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:38,092 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:38,130 p=2583 u=cardelea n=ansible | TASK [Apply kernel parameters] *******************************************************************************************************************
+2025-07-28 06:14:38,888 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:38,970 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:38,992 p=2583 u=cardelea n=ansible | TASK [Start and enable tuned service] ************************************************************************************************************
+2025-07-28 06:14:41,306 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:41,516 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:41,554 p=2583 u=cardelea n=ansible | TASK [Activate Oracle tuned profile] *************************************************************************************************************
+2025-07-28 06:14:44,929 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:14:45,075 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:14:45,108 p=2583 u=cardelea n=ansible | TASK [Update GRUB configuration] *****************************************************************************************************************
+2025-07-28 06:15:14,341 p=2583 u=cardelea n=ansible | changed: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:15:15,903 p=2583 u=cardelea n=ansible | changed: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:15:15,953 p=2583 u=cardelea n=ansible | TASK [Add Oracle GPG key] ************************************************************************************************************************
+2025-07-28 06:15:20,060 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:15:20,126 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:15:20,167 p=2583 u=cardelea n=ansible | TASK [Install Oracle ASM kernel module] **********************************************************************************************************
+2025-07-28 06:15:48,156 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:15:48,254 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:15:48,294 p=2583 u=cardelea n=ansible | TASK [Install Oracle ASM support] ****************************************************************************************************************
+2025-07-28 06:15:55,036 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:15:55,131 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:15:55,166 p=2583 u=cardelea n=ansible | TASK [Install CVU disk utility] ******************************************************************************************************************
+2025-07-28 06:15:59,925 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:15:59,966 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:15:59,990 p=2583 u=cardelea n=ansible | TASK [Install Oracle ASM library] ****************************************************************************************************************
+2025-07-28 06:16:05,623 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:16:05,968 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:16:06,000 p=2583 u=cardelea n=ansible | TASK [Install Oracle database preinstall package] ************************************************************************************************
+2025-07-28 06:16:10,818 p=2583 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:16:11,011 p=2583 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:16:11,041 p=2583 u=cardelea n=ansible | TASK [Configure chrony] **************************************************************************************************************************
+2025-07-28 06:16:13,214 p=2583 u=cardelea n=ansible | ERROR! The requested handler 'restart chronyd' was not found in either the main handlers list nor in the listening handlers list
+2025-07-28 06:26:13,000 p=2870 u=cardelea n=ansible | PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-28 06:26:13,196 p=2870 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:26:19,204 p=2870 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:26:20,240 p=2870 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:26:20,380 p=2870 u=cardelea n=ansible | TASK [include_tasks] *****************************************************************************************************************************
+2025-07-28 06:26:20,583 p=2870 u=cardelea n=ansible | included: /home/cardelea/oracle19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-28 06:26:21,025 p=2870 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 1] ***********************************************************************************************
+2025-07-28 06:26:21,301 p=2870 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 2] ***********************************************************************************************
+2025-07-28 06:26:21,535 p=2870 u=cardelea n=ansible | PLAY [Oracle Grid Infrastructure Installation] ***************************************************************************************************
+2025-07-28 06:26:21,861 p=2870 u=cardelea n=ansible | PLAY [Oracle Database Software Installation] *****************************************************************************************************
+2025-07-28 06:26:22,144 p=2870 u=cardelea n=ansible | PLAY [Post Installation Configuration] ***********************************************************************************************************
+2025-07-28 06:26:22,446 p=2870 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:26:22,447 p=2870 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:26:22,447 p=2870 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:32:12,773 p=3001 u=cardelea n=ansible | PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-28 06:32:12,999 p=3001 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:32:18,497 p=3001 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:32:19,262 p=3001 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:32:19,348 p=3001 u=cardelea n=ansible | TASK [include_tasks] *****************************************************************************************************************************
+2025-07-28 06:32:19,479 p=3001 u=cardelea n=ansible | included: /home/cardelea/oracle19ocpv/tasks/users_groups.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-28 06:32:19,649 p=3001 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 1] ***********************************************************************************************
+2025-07-28 06:32:19,887 p=3001 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 2] ***********************************************************************************************
+2025-07-28 06:32:20,059 p=3001 u=cardelea n=ansible | PLAY [Oracle Grid Infrastructure Installation] ***************************************************************************************************
+2025-07-28 06:32:20,263 p=3001 u=cardelea n=ansible | PLAY [Oracle Database Software Installation] *****************************************************************************************************
+2025-07-28 06:32:20,415 p=3001 u=cardelea n=ansible | PLAY [Post Installation Configuration] ***********************************************************************************************************
+2025-07-28 06:32:20,714 p=3001 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:32:20,715 p=3001 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:32:20,716 p=3001 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:32:37,460 p=3029 u=cardelea n=ansible | PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-28 06:32:37,633 p=3029 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:32:42,453 p=3029 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:32:46,678 p=3029 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:32:46,945 p=3029 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 1] ***********************************************************************************************
+2025-07-28 06:32:47,116 p=3029 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 2] ***********************************************************************************************
+2025-07-28 06:32:47,266 p=3029 u=cardelea n=ansible | PLAY [Oracle Grid Infrastructure Installation] ***************************************************************************************************
+2025-07-28 06:32:47,335 p=3029 u=cardelea n=ansible | TASK [include_tasks] *****************************************************************************************************************************
+2025-07-28 06:32:47,414 p=3029 u=cardelea n=ansible | included: /home/cardelea/oracle19ocpv/tasks/grid_installation.yml for oracle-node01.lab.dev.example.com
+2025-07-28 06:32:47,439 p=3029 u=cardelea n=ansible | TASK [Install Oracle Grid Infrastructure] ********************************************************************************************************
+2025-07-28 06:32:47,473 p=3029 u=cardelea n=ansible | fatal: [oracle-node01.lab.dev.example.com]: FAILED! => 
+  msg: |-
+    The conditional check 'not grid_installed.stat.exists' failed. The error was: error while evaluating conditional (not grid_installed.stat.exists): 'grid_installed' is undefined. 'grid_installed' is undefined
+  
+    The error appears to be in '/home/cardelea/oracle19ocpv/tasks/grid_installation.yml': line 10, column 3, but may
+    be elsewhere in the file depending on the exact syntax problem.
+  
+    The offending line appears to be:
+  
+  
+    - name: Install Oracle Grid Infrastructure
+      ^ here
+2025-07-28 06:32:47,475 p=3029 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:32:47,476 p=3029 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:32:47,476 p=3029 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:42:21,914 p=3119 u=cardelea n=ansible | PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-28 06:42:22,133 p=3119 u=cardelea n=ansible | TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-28 06:42:27,390 p=3119 u=cardelea n=ansible | ok: [oracle-node01.lab.dev.example.com]
+2025-07-28 06:42:29,437 p=3119 u=cardelea n=ansible | ok: [oracle-node02.lab.dev.example.com]
+2025-07-28 06:42:29,757 p=3119 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 1] ***********************************************************************************************
+2025-07-28 06:42:29,894 p=3119 u=cardelea n=ansible | PLAY [Configure Node Specific Settings for Node 2] ***********************************************************************************************
+2025-07-28 06:42:30,090 p=3119 u=cardelea n=ansible | PLAY [Oracle Grid Infrastructure Installation] ***************************************************************************************************
+2025-07-28 06:42:30,145 p=3119 u=cardelea n=ansible | TASK [include_tasks] *****************************************************************************************************************************
+2025-07-28 06:42:30,222 p=3119 u=cardelea n=ansible | included: /home/cardelea/oracle19ocpv/tasks/grid_installation.yml for oracle-node01.lab.dev.example.com
+2025-07-28 06:42:30,266 p=3119 u=cardelea n=ansible | TASK [Install Oracle Grid Infrastructure] ********************************************************************************************************
+2025-07-28 06:42:30,309 p=3119 u=cardelea n=ansible | fatal: [oracle-node01.lab.dev.example.com]: FAILED! => 
+  msg: |-
+    The conditional check 'not grid_installed.stat.exists' failed. The error was: error while evaluating conditional (not grid_installed.stat.exists): 'grid_installed' is undefined. 'grid_installed' is undefined
+  
+    The error appears to be in '/home/cardelea/oracle19ocpv/tasks/grid_installation.yml': line 10, column 3, but may
+    be elsewhere in the file depending on the exact syntax problem.
+  
+    The offending line appears to be:
+  
+  
+    - name: Install Oracle Grid Infrastructure
+      ^ here
+2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
+2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
