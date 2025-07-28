@@ -1,0 +1,208 @@
+---
+- name: Setup Passwordless SSH for Oracle RAC Users
+  hosts: oracle_rac
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/oracle_rac_vars.yml
+
+  tasks:
+    - name: Ensure .ssh directory exists for Oracle users
+      file:
+        path: "{{ item.home }}/.ssh"
+        state: directory
+        owner: "{{ item.user }}"
+        group: "{{ oracle_group }}"
+        mode: '0700'
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome" }
+        - { user: "oracle", home: "/services/oracle/orahome" }
+        - { user: "dbz", home: "/services/oracle/dbz" }
+      tags: ssh_setup
+
+    - name: Generate SSH key pairs for Oracle users
+      user:
+        name: "{{ item }}"
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        ssh_key_type: rsa
+        ssh_key_comment: "{{ item }}@{{ inventory_hostname }}"
+      loop:
+        - grid
+        - oracle
+        - dbz
+      tags: ssh_keys
+
+    - name: Fetch public keys from all nodes
+      fetch:
+        src: "{{ item.home }}/.ssh/id_rsa.pub"
+        dest: "/tmp/ssh_keys/{{ inventory_hostname }}/{{ item.user }}/"
+        flat: yes
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome" }
+        - { user: "oracle", home: "/services/oracle/orahome" }
+        - { user: "dbz", home: "/services/oracle/dbz" }
+      tags: fetch_keys
+
+    - name: Create authorized_keys for grid user
+      authorized_key:
+        user: grid
+        key: "{{ lookup('file', '/tmp/ssh_keys/' + item + '/grid/id_rsa.pub') }}"
+        state: present
+      loop: "{{ groups['oracle_rac'] }}"
+      tags: authorized_keys
+
+    - name: Create authorized_keys for oracle user
+      authorized_key:
+        user: oracle
+        key: "{{ lookup('file', '/tmp/ssh_keys/' + item + '/oracle/id_rsa.pub') }}"
+        state: present
+      loop: "{{ groups['oracle_rac'] }}"
+      tags: authorized_keys
+
+    - name: Create authorized_keys for dbz user
+      authorized_key:
+        user: dbz
+        key: "{{ lookup('file', '/tmp/ssh_keys/' + item + '/dbz/id_rsa.pub') }}"
+        state: present
+      loop: "{{ groups['oracle_rac'] }}"
+      tags: authorized_keys
+
+    - name: Set proper permissions for .ssh directory
+      file:
+        path: "{{ item.home }}/.ssh"
+        owner: "{{ item.user }}"
+        group: "{{ oracle_group }}"
+        mode: '0700'
+        recurse: yes
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome" }
+        - { user: "oracle", home: "/services/oracle/orahome" }
+        - { user: "dbz", home: "/services/oracle/dbz" }
+      tags: permissions
+
+    - name: Set proper permissions for SSH files
+      file:
+        path: "{{ item.home }}/.ssh/{{ item.file }}"
+        owner: "{{ item.user }}"
+        group: "{{ oracle_group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome", file: "id_rsa", mode: "0600" }
+        - { user: "grid", home: "/services/oracle/gridhome", file: "id_rsa.pub", mode: "0644" }
+        - { user: "grid", home: "/services/oracle/gridhome", file: "authorized_keys", mode: "0600" }
+        - { user: "oracle", home: "/services/oracle/orahome", file: "id_rsa", mode: "0600" }
+        - { user: "oracle", home: "/services/oracle/orahome", file: "id_rsa.pub", mode: "0644" }
+        - { user: "oracle", home: "/services/oracle/orahome", file: "authorized_keys", mode: "0600" }
+        - { user: "dbz", home: "/services/oracle/dbz", file: "id_rsa", mode: "0600" }
+        - { user: "dbz", home: "/services/oracle/dbz", file: "id_rsa.pub", mode: "0644" }
+        - { user: "dbz", home: "/services/oracle/dbz", file: "authorized_keys", mode: "0600" }
+      failed_when: false
+      tags: permissions
+
+    - name: Add all cluster nodes to known_hosts for grid user
+      known_hosts:
+        name: "{{ item.name }}"
+        key: "{{ item.key }}"
+        path: "/services/oracle/gridhome/.ssh/known_hosts"
+        state: present
+      become_user: grid
+      loop:
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['oracle_rac_nodes']['node1']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['oracle_rac_nodes']['node2']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+      when: item.key != ""
+      failed_when: false
+      tags: known_hosts
+
+    - name: Add all cluster nodes to known_hosts for oracle user
+      known_hosts:
+        name: "{{ item.name }}"
+        key: "{{ item.key }}"
+        path: "/services/oracle/orahome/.ssh/known_hosts"
+        state: present
+      become_user: oracle
+      loop:
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['oracle_rac_nodes']['node1']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['oracle_rac_nodes']['node2']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+      when: item.key != ""
+      failed_when: false
+      tags: known_hosts
+
+    - name: Add all cluster nodes to known_hosts for dbz user
+      known_hosts:
+        name: "{{ item.name }}"
+        key: "{{ item.key }}"
+        path: "/services/oracle/dbz/.ssh/known_hosts"
+        state: present
+      become_user: dbz
+      loop:
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['ansible_fqdn'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][0]]['oracle_rac_nodes']['node1']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][0]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+        - { name: "{{ hostvars[groups['oracle_rac'][1]]['oracle_rac_nodes']['node2']['hostname'] }}", key: "{{ hostvars[groups['oracle_rac'][1]]['ansible_ssh_host_key_rsa_public'] | default('') }}" }
+      when: item.key != ""
+      failed_when: false
+      tags: known_hosts
+
+- name: Test SSH Connectivity Between Nodes
+  hosts: oracle_rac
+  become: yes
+  gather_facts: no
+  vars_files:
+    - vars/oracle_rac_vars.yml
+
+  tasks:
+    - name: Test grid user SSH connectivity from node1 to all nodes
+      shell: |
+        su - grid -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {{ item }} 'hostname && date'"
+      register: grid_ssh_test
+      loop: "{{ groups['oracle_rac'] }}"
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+      failed_when: false
+      tags: test_ssh
+
+    - name: Test oracle user SSH connectivity from node1 to all nodes
+      shell: |
+        su - oracle -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {{ item }} 'hostname && date'"
+      register: oracle_ssh_test
+      loop: "{{ groups['oracle_rac'] }}"
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+      failed_when: false
+      tags: test_ssh
+
+    - name: Test dbz user SSH connectivity from node1 to all nodes
+      shell: |
+        su - dbz -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {{ item }} 'hostname && date'"
+      register: dbz_ssh_test
+      loop: "{{ groups['oracle_rac'] }}"
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+      failed_when: false
+      tags: test_ssh
+
+    - name: Display SSH connectivity test results
+      debug:
+        msg:
+          - "=== SSH Connectivity Test Results ==="
+          - "Grid User SSH Tests:"
+          - "{{ grid_ssh_test.results | default([]) | map(attribute='stdout') | list }}"
+          - "Oracle User SSH Tests:"
+          - "{{ oracle_ssh_test.results | default([]) | map(attribute='stdout') | list }}"
+          - "DBZ User SSH Tests:"
+          - "{{ dbz_ssh_test.results | default([]) | map(attribute='stdout') | list }}"
+      when: inventory_hostname == groups['oracle_rac_node1'][0]
+      tags: test_ssh
+
+- name: Cleanup temporary SSH keys
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Remove temporary SSH key directory
+      file:
+        path: /tmp/ssh_keys
+        state: absent
+      tags: cleanup 

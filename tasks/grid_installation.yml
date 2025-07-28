@@ -23,6 +23,7 @@
 - name: Install Oracle Grid Infrastructure
   shell: |
     export ORACLE_HOME="{{ oracle_grid_home }}"
+    export CV_ASSUME_DISTID=OEL7.6
     export ORACLE_BASE="{{ grid_base }}"
     cd {{ oracle_grid_home }}
     ./gridSetup.sh -silent -responseFile {{ oracle_grid_home }}/install/response/grid.rsp

@@ -1,0 +1,231 @@
+---
+- name: Setup Passwordless SSH using Oracle sshUserSetup.sh
+  hosts: oracle_rac_node1
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/oracle_rac_vars.yml
+
+  tasks:
+    - name: Ensure SSH keys exist for grid user
+      user:
+        name: grid
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        ssh_key_type: rsa
+        ssh_key_comment: "grid@{{ inventory_hostname }}"
+      tags: generate_keys
+
+    - name: Ensure SSH keys exist for oracle user  
+      user:
+        name: oracle
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        ssh_key_type: rsa
+        ssh_key_comment: "oracle@{{ inventory_hostname }}"
+      tags: generate_keys
+
+    - name: Ensure SSH keys exist for dbz user
+      user:
+        name: dbz
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        ssh_key_type: rsa
+        ssh_key_comment: "dbz@{{ inventory_hostname }}"
+      tags: generate_keys
+
+    - name: Get list of all Oracle RAC node hostnames
+      set_fact:
+        rac_hostnames: "{{ groups['oracle_rac'] | map('extract', hostvars, 'ansible_fqdn') | list }}"
+      tags: prepare_hosts
+
+    - name: Display hostnames for SSH setup
+      debug:
+        msg: "Setting up SSH for hosts: {{ rac_hostnames | join(' ') }}"
+      tags: prepare_hosts
+
+    - name: Setup SSH equivalency for grid user using Oracle script
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        if [ -f "${ORACLE_HOME}/oui/prov/resources/scripts/sshUserSetup.sh" ]; then
+          ${ORACLE_HOME}/oui/prov/resources/scripts/sshUserSetup.sh \
+            -user grid \
+            -hosts "{{ rac_hostnames | join(' ') }}" \
+            -advanced \
+            -noPromptPassphrase
+        else
+          echo "sshUserSetup.sh not found, using manual method"
+          # Manual SSH key distribution
+          for host in {{ rac_hostnames | join(' ') }}; do
+            ssh-keyscan -H $host >> ~/.ssh/known_hosts 2>/dev/null || true
+          done
+        fi
+      become_user: grid
+      register: grid_ssh_setup
+      failed_when: false
+      tags: ssh_grid
+
+    - name: Setup SSH equivalency for oracle user using Oracle script
+      shell: |
+        export ORACLE_HOME="{{ oracle_db_home }}"
+        if [ -f "${ORACLE_HOME}/oui/prov/resources/scripts/sshUserSetup.sh" ]; then
+          ${ORACLE_HOME}/oui/prov/resources/scripts/sshUserSetup.sh \
+            -user oracle \
+            -hosts "{{ rac_hostnames | join(' ') }}" \
+            -advanced \
+            -noPromptPassphrase
+        else
+          echo "sshUserSetup.sh not found, using manual method"
+          # Manual SSH key distribution
+          for host in {{ rac_hostnames | join(' ') }}; do
+            ssh-keyscan -H $host >> ~/.ssh/known_hosts 2>/dev/null || true
+          done
+        fi
+      become_user: oracle
+      register: oracle_ssh_setup
+      failed_when: false
+      tags: ssh_oracle
+
+    - name: Manual SSH setup for dbz user
+      shell: |
+        # Generate and distribute SSH keys manually for dbz user
+        for host in {{ rac_hostnames | join(' ') }}; do
+          ssh-keyscan -H $host >> ~/.ssh/known_hosts 2>/dev/null || true
+          if [ "$host" != "{{ inventory_hostname }}" ]; then
+            ssh-copy-id -o StrictHostKeyChecking=no $host 2>/dev/null || true
+          fi
+        done
+      become_user: dbz
+      register: dbz_ssh_setup
+      failed_when: false
+      tags: ssh_dbz
+
+    - name: Display SSH setup results
+      debug:
+        msg:
+          - "=== SSH Setup Results ==="
+          - "Grid User Setup:"
+          - "{{ grid_ssh_setup.stdout_lines | default(['Failed or not available']) }}"
+          - "Oracle User Setup:"
+          - "{{ oracle_ssh_setup.stdout_lines | default(['Failed or not available']) }}"
+          - "DBZ User Setup:"
+          - "{{ dbz_ssh_setup.stdout_lines | default(['Failed or not available']) }}"
+      tags: display_results
+
+- name: Replicate SSH Keys to All Nodes
+  hosts: oracle_rac
+  become: yes
+  gather_facts: no
+  vars_files:
+    - vars/oracle_rac_vars.yml
+
+  tasks:
+    - name: Ensure .ssh directory exists for all Oracle users
+      file:
+        path: "{{ item.home }}/.ssh"
+        state: directory
+        owner: "{{ item.user }}"
+        group: "{{ oracle_group }}"
+        mode: '0700'
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome" }
+        - { user: "oracle", home: "/services/oracle/orahome" }
+        - { user: "dbz", home: "/services/oracle/dbz" }
+      tags: ensure_dirs
+
+    - name: Copy grid user SSH keys from node1 to other nodes
+      synchronize:
+        src: "/services/oracle/gridhome/.ssh/"
+        dest: "/services/oracle/gridhome/.ssh/"
+        recursive: yes
+        owner: no
+        group: no
+      delegate_to: "{{ groups['oracle_rac_node1'][0] }}"
+      when: inventory_hostname != groups['oracle_rac_node1'][0]
+      tags: sync_grid
+
+    - name: Copy oracle user SSH keys from node1 to other nodes
+      synchronize:
+        src: "/services/oracle/orahome/.ssh/"
+        dest: "/services/oracle/orahome/.ssh/"
+        recursive: yes
+        owner: no
+        group: no
+      delegate_to: "{{ groups['oracle_rac_node1'][0] }}"
+      when: inventory_hostname != groups['oracle_rac_node1'][0]
+      tags: sync_oracle
+
+    - name: Copy dbz user SSH keys from node1 to other nodes
+      synchronize:
+        src: "/services/oracle/dbz/.ssh/"
+        dest: "/services/oracle/dbz/.ssh/"
+        recursive: yes
+        owner: no
+        group: no
+      delegate_to: "{{ groups['oracle_rac_node1'][0] }}"
+      when: inventory_hostname != groups['oracle_rac_node1'][0]
+      tags: sync_dbz
+
+    - name: Fix ownership and permissions after sync
+      file:
+        path: "{{ item.home }}/.ssh"
+        owner: "{{ item.user }}"
+        group: "{{ oracle_group }}"
+        mode: '0700'
+        recurse: yes
+      loop:
+        - { user: "grid", home: "/services/oracle/gridhome" }
+        - { user: "oracle", home: "/services/oracle/orahome" }
+        - { user: "dbz", home: "/services/oracle/dbz" }
+      tags: fix_permissions
+
+- name: Test SSH Connectivity
+  hosts: oracle_rac
+  become: yes
+  gather_facts: no
+  vars_files:
+    - vars/oracle_rac_vars.yml
+
+  tasks:
+    - name: Test SSH connectivity for grid user
+      shell: |
+        su - grid -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {{ item }} 'hostname'"
+      register: test_grid_ssh
+      loop: "{{ groups['oracle_rac'] }}"
+      failed_when: false
+      tags: test_connectivity
+
+    - name: Test SSH connectivity for oracle user
+      shell: |
+        su - oracle -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {{ item }} 'hostname'"
+      register: test_oracle_ssh
+      loop: "{{ groups['oracle_rac'] }}"
+      failed_when: false
+      tags: test_connectivity
+
+    - name: Test SSH connectivity for dbz user
+      shell: |
+        su - dbz -c "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {{ item }} 'hostname'"
+      register: test_dbz_ssh
+      loop: "{{ groups['oracle_rac'] }}"
+      failed_when: false
+      tags: test_connectivity
+
+    - name: Display connectivity test results
+      debug:
+        msg:
+          - "=== SSH Connectivity Tests from {{ inventory_hostname }} ==="
+          - "Grid user connectivity:"
+          - "{{ test_grid_ssh.results | map(attribute='stdout') | list }}"
+          - "Oracle user connectivity:"
+          - "{{ test_oracle_ssh.results | map(attribute='stdout') | list }}"
+          - "DBZ user connectivity:"
+          - "{{ test_dbz_ssh.results | map(attribute='stdout') | list }}"
+          - "Failed connections:"
+          - "Grid: {{ test_grid_ssh.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
+          - "Oracle: {{ test_oracle_ssh.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
+          - "DBZ: {{ test_dbz_ssh.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
+      tags: test_connectivity 
