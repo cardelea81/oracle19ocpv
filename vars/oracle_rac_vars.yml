@@ -19,25 +19,25 @@ domain_name: "lab.dev.example.com"
 oracle_rac_nodes:
   node1:
     hostname: "oracle-node01.lab.dev.example.com"
-    public_ip: "192.168.2.130"
-    private_ip: "172.25.250.130"
-    vip_ip: "192.168.2.132"
+    public_ip: "172.25.250.67"
+    private_ip: "192.168.10.67"
+    vip_ip: "172.25.250.72"
     vip_hostname: "oracle-node01-vip.lab.dev.example.com"
   node2:
     hostname: "oracle-node02.lab.dev.example.com"
-    public_ip: "192.168.2.131"
-    private_ip: "172.25.250.131"
-    vip_ip: "192.168.2.133"
+    public_ip: "172.25.250.68"
+    private_ip: "192.168.10.68"
+    vip_ip: "172.25.250.73"
     vip_hostname: "oracle-node02-vip.lab.dev.example.com"
 
 # SCAN Configuration
 scan_ips:
-  - "192.168.2.134"
-  - "192.168.2.135"
-  - "192.168.2.136"
+  - "172.25.250.69"
+  - "172.25.250.70"
+  - "172.25.250.71"
 
 # Storage Configuration
-iscsi_target_ip: "192.168.2.137"
+iscsi_target_ip: "192.168.10.30"
 storage_private_ip: "172.25.250.137"
 
 # ASM Configuration
@@ -49,7 +49,7 @@ asm_disks:
 # Network Interfaces
 network_interfaces:
   public: "enp1s0:172.25.250.0:1"
-  asm: "enp2s0:192.168.100.0:4"
+  asm: "enp2s0:192.168.10.0:4"
   private: "enp3s0:192.168.10.0:2"
 
 # User and Group Configuration
@@ -87,12 +87,12 @@ oracle_users:
 
 # Software Download URLs
 oracle_software_urls:
-  grid: "http://192.168.122.1/oracle19/LINUX.X64_193000_grid_home.zip"
-  database: "http://192.168.122.1/oracle19/LINUX.X64_193000_db_home.zip"
-  cvuqdisk: "http://192.168.122.1/oracle19/rpm/cvuqdisk-1.0.10-1.rpm"
-  oracleasm_support: "http://192.168.122.1/oracle19/rpm/oracleasm-support-2.1.12-1.el8.x86_64.rpm"
-  oracleasmlib: "http://192.168.122.1/oracle19/rpm/oracleasmlib-2.0.17-1.el8.x86_64.rpm"
-  oracle_preinstall: "http://192.168.122.1/oracle19/rpm/oracle-database-preinstall-19c-1.0-2.el8.x86_64.rpm"
+  grid: "http://172.25.250.30/oracle19/LINUX.X64_193000_grid_home.zip"
+  database: "http://172.25.250.30/oracle19/LINUX.X64_193000_db_home.zip"
+  cvuqdisk: "http://172.25.250.30/oracle19/rpm/cvuqdisk-1.0.10-1.rpm"
+  oracleasm_support: "http://172.25.250.30/oracle19/rpm/oracleasm-support-2.1.12-1.el8.x86_64.rpm"
+  oracleasmlib: "http://172.25.250.30/oracle19/rpm/oracleasmlib-2.0.17-1.el8.x86_64.rpm"
+  oracle_preinstall: "http://172.25.250.30/oracle19/rpm/oracle-database-preinstall-19c-1.0-2.el8.x86_64.rpm"
 
 # Required Packages
 required_packages:

@@ -227,3 +227,94 @@
 2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | PLAY RECAP ***************************************************************************************************************************************
 2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 2025-07-28 06:42:30,312 p=3119 u=cardelea n=ansible | oracle-node02.lab.dev.example.com : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-30 16:50:09,920 p=1047212 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 
+onwards. This feature will be removed from community.general in version 13.0.0. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-30 16:50:09,941 p=1047212 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] ***************************************************************************************************************************************************************
+2025-07-30 16:50:09,973 p=1047212 u=cardelea n=ansible INFO| TASK [Gathering Facts] ********************************************************************************************************************************************************************************************
+2025-07-30 16:50:11,063 p=1047212 u=cardelea n=ansible INFO| fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  ansible_facts: {}
+  failed_modules:
+    ansible.legacy.setup:
+      ansible_facts:
+        discovered_interpreter_python: /usr/bin/python3
+      failed: true
+      module_stderr: |-
+        /bin/sh: /usr/bin/python3: No such file or directory
+      module_stdout: ''
+      msg: |-
+        The module failed to execute correctly, you probably need to set the interpreter.
+        See stdout/stderr for the exact error
+      rc: 127
+      warnings:
+      - No python interpreters found for host oracle-node02.lab.dev.example.com (tried ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3.9', 'python3.8', '/usr/bin/python3', 'python3'])
+  msg: |-
+    The following modules failed to execute: ansible.legacy.setup
+2025-07-30 16:50:27,532 p=1047212 u=cardelea n=ansible ERROR|  [ERROR]: User interrupted execution
+
+2025-07-30 17:04:51,929 p=1048225 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 
+onwards. This feature will be removed from community.general in version 13.0.0. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-30 17:04:51,940 p=1048225 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] ***************************************************************************************************************************************************************
+2025-07-30 17:04:51,957 p=1048225 u=cardelea n=ansible INFO| TASK [Gathering Facts] ********************************************************************************************************************************************************************************************
+2025-07-30 17:04:52,978 p=1048225 u=cardelea n=ansible INFO| fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  ansible_facts: {}
+  failed_modules:
+    ansible.legacy.setup:
+      ansible_facts:
+        discovered_interpreter_python: /usr/bin/python3
+      failed: true
+      module_stderr: |-
+        /bin/sh: /usr/bin/python3: No such file or directory
+      module_stdout: ''
+      msg: |-
+        The module failed to execute correctly, you probably need to set the interpreter.
+        See stdout/stderr for the exact error
+      rc: 127
+      warnings:
+      - No python interpreters found for host oracle-node02.lab.dev.example.com (tried ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3.9', 'python3.8', '/usr/bin/python3', 'python3'])
+  msg: |-
+    The following modules failed to execute: ansible.legacy.setup
+2025-07-30 17:04:52,986 p=1048225 u=cardelea n=ansible INFO| fatal: [oracle-node01.lab.dev.example.com]: FAILED! => changed=false 
+  ansible_facts: {}
+  failed_modules:
+    ansible.legacy.setup:
+      ansible_facts:
+        discovered_interpreter_python: /usr/bin/python3
+      failed: true
+      module_stderr: |-
+        /bin/sh: /usr/bin/python3: No such file or directory
+      module_stdout: ''
+      msg: |-
+        The module failed to execute correctly, you probably need to set the interpreter.
+        See stdout/stderr for the exact error
+      rc: 127
+      warnings:
+      - No python interpreters found for host oracle-node01.lab.dev.example.com (tried ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3.9', 'python3.8', '/usr/bin/python3', 'python3'])
+  msg: |-
+    The following modules failed to execute: ansible.legacy.setup
+2025-07-30 17:04:52,987 p=1048225 u=cardelea n=ansible INFO| PLAY RECAP ********************************************************************************************************************************************************************************************************
+2025-07-30 17:04:52,987 p=1048225 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:04:52,987 p=1048225 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:07:57,895 p=1048397 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 
+onwards. This feature will be removed from community.general in version 13.0.0. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-30 17:07:57,909 p=1048397 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] ***************************************************************************************************************************************************************
+2025-07-30 17:07:57,929 p=1048397 u=cardelea n=ansible INFO| TASK [Gathering Facts] ********************************************************************************************************************************************************************************************
+2025-07-30 17:07:59,617 p=1048397 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node01.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:07:59,617 p=1048397 u=cardelea n=ansible INFO| ok: [oracle-node01.lab.dev.example.com]
+2025-07-30 17:07:59,623 p=1048397 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node02.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:07:59,623 p=1048397 u=cardelea n=ansible INFO| ok: [oracle-node02.lab.dev.example.com]
+2025-07-30 17:07:59,627 p=1048397 u=cardelea n=ansible INFO| TASK [include_tasks] **********************************************************************************************************************************************************************************************
+2025-07-30 17:07:59,652 p=1048397 u=cardelea n=ansible INFO| included: /home/cardelea/lab2/oraclerac19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-30 17:07:59,658 p=1048397 u=cardelea n=ansible INFO| TASK [Install required packages] **********************************************************************************************************************************************************************************
+2025-07-30 17:07:59,988 p=1048397 u=cardelea n=ansible INFO| fatal: [oracle-node01.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.11 (3.11.13 (main, Jun 23 2025, 08:54:06) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-30 17:08:00,038 p=1048397 u=cardelea n=ansible INFO| fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.11 (3.11.13 (main, Jun 23 2025, 08:54:06) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| PLAY RECAP ********************************************************************************************************************************************************************************************************
+2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
