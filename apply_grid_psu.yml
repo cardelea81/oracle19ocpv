@@ -1,0 +1,283 @@
+---
+- name: Apply Oracle Grid Infrastructure PSU
+  hosts: oracle_rac
+  become: yes
+  gather_facts: yes
+  vars:
+    oracle_grid_home: "/services/oracle/grid/19.3/grid_home"
+    oracle_gridhome_user: "/services/oracle/gridhome"
+    patch_directory: "patch"
+    opatch_patch: "p6880880_121010_Linux-x86-64.zip"
+    psu_patch: "p34762026_190000_Linux-x86-64.zip"
+    psu_patch_id: "34762026"
+    patch_staging_dir: "/tmp/oracle_psu_patch"
+    
+  tasks:
+    - name: Create patch staging directory
+      file:
+        path: "{{ patch_staging_dir }}"
+        state: directory
+        owner: grid
+        group: oinstall
+        mode: '0755'
+      tags: preparation
+
+    - name: Check if patch files exist
+      stat:
+        path: "{{ patch_directory }}/{{ item }}"
+      register: patch_files_check
+      loop:
+        - "{{ opatch_patch }}"
+        - "{{ psu_patch }}"
+      tags: validation
+
+    - name: Fail if patch files are missing
+      fail:
+        msg: "Patch file {{ item.item }} not found in {{ patch_directory }}"
+      when: not item.stat.exists
+      loop: "{{ patch_files_check.results }}"
+      tags: validation
+
+    - name: Stop Oracle Grid Infrastructure services before patching
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl stop cluster -all
+      become_user: root
+      register: grid_stop_result
+      failed_when: false
+      tags: stop_services
+
+    - name: Wait for Grid Infrastructure shutdown
+      wait_for:
+        timeout: 300
+        sleep: 15
+      delegate_to: localhost
+      run_once: true
+      tags: stop_services
+
+    - name: Stop Oracle HAS (High Availability Services)
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl stop has
+      become_user: root
+      register: has_stop_result
+      failed_when: false
+      tags: stop_services
+
+    - name: Display service stop results
+      debug:
+        msg:
+          - "Grid stop result: {{ grid_stop_result.rc }}"
+          - "HAS stop result: {{ has_stop_result.rc }}"
+      tags: stop_services
+
+    - name: Backup current OPatch directory
+      shell: |
+        cd {{ oracle_grid_home }}
+        if [ -d "OPatch" ]; then
+          mv OPatch OPatch.backup.$(date +%Y%m%d_%H%M%S)
+        fi
+      become_user: grid
+      tags: backup_opatch
+
+    - name: Remove OPatch directory (as requested)
+      file:
+        path: "{{ oracle_grid_home }}/OPatch"
+        state: absent
+      tags: remove_opatch
+
+    - name: Extract new OPatch to Grid Infrastructure home
+      unarchive:
+        src: "{{ patch_directory }}/{{ opatch_patch }}"
+        dest: "{{ oracle_grid_home }}"
+        remote_src: yes
+        owner: grid
+        group: oinstall
+        mode: preserve
+      tags: install_opatch
+
+    - name: Verify OPatch installation
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/OPatch/opatch version
+      become_user: grid
+      register: opatch_version_check
+      tags: verify_opatch
+
+    - name: Display OPatch version
+      debug:
+        var: opatch_version_check.stdout_lines
+      tags: verify_opatch
+
+    - name: Extract PSU patch to staging directory
+      unarchive:
+        src: "{{ patch_directory }}/{{ psu_patch }}"
+        dest: "{{ patch_staging_dir }}"
+        remote_src: yes
+        owner: grid
+        group: oinstall
+        creates: "{{ patch_staging_dir }}/{{ psu_patch_id }}"
+      tags: extract_psu
+
+    - name: Find PSU patch directory
+      find:
+        paths: "{{ patch_staging_dir }}"
+        patterns: "{{ psu_patch_id }}"
+        file_type: directory
+      register: psu_patch_dir
+      tags: find_psu_dir
+
+    - name: Set PSU patch directory variable
+      set_fact:
+        actual_psu_dir: "{{ psu_patch_dir.files[0].path if psu_patch_dir.files else patch_staging_dir + '/' + psu_patch_id }}"
+      tags: find_psu_dir
+
+    - name: Display PSU patch directory
+      debug:
+        msg: "PSU patch directory: {{ actual_psu_dir }}"
+      tags: find_psu_dir
+
+    - name: Check PSU patch applicability
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ actual_psu_dir }}
+        {{ oracle_grid_home }}/OPatch/opatch prereq CheckApplicable -ph ./
+      become_user: grid
+      register: psu_applicable_check
+      failed_when: false
+      tags: check_applicability
+
+    - name: Display PSU applicability check
+      debug:
+        var: psu_applicable_check.stdout_lines
+      tags: check_applicability
+
+    - name: Apply PSU using gridSetup.sh (Method 1 - from patch directory)
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ actual_psu_dir }}
+        ./gridSetup.sh -applyPSU {{ actual_psu_dir }}
+      become_user: grid
+      register: psu_apply_method1
+      when: psu_applicable_check.rc == 0
+      async: 3600
+      poll: 60
+      failed_when: false
+      tags: apply_psu_method1
+
+    - name: Apply PSU using gridSetup.sh (Method 2 - full path)
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/gridSetup.sh -applyPSU {{ actual_psu_dir }}
+      become_user: grid
+      register: psu_apply_method2
+      when: 
+        - psu_applicable_check.rc == 0
+        - psu_apply_method1 is defined and psu_apply_method1.rc != 0
+      async: 3600
+      poll: 60
+      failed_when: false
+      tags: apply_psu_method2
+
+    - name: Display PSU application results
+      debug:
+        msg:
+          - "PSU Application Method 1 Result: {{ psu_apply_method1.rc if psu_apply_method1 is defined else 'Skipped' }}"
+          - "PSU Application Method 2 Result: {{ psu_apply_method2.rc if psu_apply_method2 is defined else 'Skipped' }}"
+          - "Method 1 Output: {{ psu_apply_method1.stdout_lines if psu_apply_method1 is defined else 'N/A' }}"
+          - "Method 2 Output: {{ psu_apply_method2.stdout_lines if psu_apply_method2 is defined else 'N/A' }}"
+      tags: display_results
+
+    - name: Start Oracle HAS after patching
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl start has
+      become_user: root
+      register: has_start_result
+      tags: start_services
+
+    - name: Wait for Grid Infrastructure startup
+      wait_for:
+        timeout: 600
+        sleep: 30
+      delegate_to: localhost
+      run_once: true
+      tags: start_services
+
+    - name: Start Oracle Grid Infrastructure cluster
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl start cluster -all
+      become_user: root
+      register: grid_start_result
+      failed_when: false
+      tags: start_services
+
+    - name: Verify Grid Infrastructure status after patching
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl check cluster -all
+      become_user: grid
+      register: grid_status_check
+      retries: 10
+      delay: 30
+      failed_when: false
+      tags: verify_status
+
+    - name: Check applied patches
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/OPatch/opatch lspatches
+      become_user: grid
+      register: applied_patches
+      tags: verify_patches
+
+    - name: Generate PSU application summary
+      copy:
+        dest: "/tmp/psu_application_summary_{{ ansible_date_time.epoch }}.txt"
+        content: |
+          Oracle Grid Infrastructure PSU Application Summary
+          ================================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          
+          Patch Information:
+          OPatch Update: {{ opatch_patch }}
+          PSU Patch: {{ psu_patch }}
+          PSU Patch ID: {{ psu_patch_id }}
+          
+          Application Results:
+          Method 1 (from patch dir): {{ 'SUCCESS' if psu_apply_method1 is defined and psu_apply_method1.rc == 0 else 'FAILED/SKIPPED' }}
+          Method 2 (full path): {{ 'SUCCESS' if psu_apply_method2 is defined and psu_apply_method2.rc == 0 else 'FAILED/SKIPPED' }}
+          
+          Post-Patch Status:
+          HAS Start: {{ 'SUCCESS' if has_start_result.rc == 0 else 'FAILED' }}
+          Grid Start: {{ 'SUCCESS' if grid_start_result.rc == 0 else 'FAILED' }}
+          Cluster Status: {{ 'RUNNING' if grid_status_check.rc == 0 else 'CHECK REQUIRED' }}
+          
+          Applied Patches:
+          {{ applied_patches.stdout | default('Unable to list patches') }}
+          
+          Next Steps:
+          1. Verify all cluster resources are online
+          2. Check ASM disk groups status
+          3. Test database connectivity
+          4. Monitor alert logs for any errors
+      tags: generate_summary
+
+    - name: Display final summary
+      debug:
+        msg:
+          - "=== PSU Application Summary ==="
+          - "OPatch Version: {{ opatch_version_check.stdout_lines[0] if opatch_version_check.stdout_lines else 'Unknown' }}"
+          - "PSU Applied: {{ 'SUCCESS' if (psu_apply_method1 is defined and psu_apply_method1.rc == 0) or (psu_apply_method2 is defined and psu_apply_method2.rc == 0) else 'FAILED' }}"
+          - "Grid Infrastructure Status: {{ 'RUNNING' if grid_status_check.rc == 0 else 'CHECK REQUIRED' }}"
+          - "Summary file: /tmp/psu_application_summary_{{ ansible_date_time.epoch }}.txt"
+      tags: final_summary
+
+    - name: Clean up staging directory
+      file:
+        path: "{{ patch_staging_dir }}"
+        state: absent
+      when: cleanup_staging | default(true)
+      tags: cleanup 

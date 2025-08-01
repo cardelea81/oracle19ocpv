@@ -318,3 +318,76 @@ meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_a
 2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| PLAY RECAP ********************************************************************************************************************************************************************************************************
 2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 2025-07-30 17:08:00,039 p=1048397 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:10:33,793 p=1048566 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 
+onwards. This feature will be removed from community.general in version 13.0.0. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-30 17:10:33,805 p=1048566 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] ***************************************************************************************************************************************************************
+2025-07-30 17:10:33,828 p=1048566 u=cardelea n=ansible INFO| TASK [Gathering Facts] ********************************************************************************************************************************************************************************************
+2025-07-30 17:10:35,470 p=1048566 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node02.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:10:35,471 p=1048566 u=cardelea n=ansible INFO| ok: [oracle-node02.lab.dev.example.com]
+2025-07-30 17:10:35,494 p=1048566 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node01.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:10:35,494 p=1048566 u=cardelea n=ansible INFO| ok: [oracle-node01.lab.dev.example.com]
+2025-07-30 17:10:35,497 p=1048566 u=cardelea n=ansible INFO| TASK [include_tasks] **********************************************************************************************************************************************************************************************
+2025-07-30 17:10:35,523 p=1048566 u=cardelea n=ansible INFO| included: /home/cardelea/lab2/oraclerac19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-30 17:10:35,527 p=1048566 u=cardelea n=ansible INFO| TASK [Install required packages] **********************************************************************************************************************************************************************************
+2025-07-30 17:10:35,873 p=1048566 u=cardelea n=ansible INFO| fatal: [oracle-node01.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.11 (3.11.13 (main, Jun 23 2025, 08:54:06) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-30 17:10:35,918 p=1048566 u=cardelea n=ansible INFO| fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.11 (3.11.13 (main, Jun 23 2025, 08:54:06) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-30 17:10:35,918 p=1048566 u=cardelea n=ansible INFO| PLAY RECAP ********************************************************************************************************************************************************************************************************
+2025-07-30 17:10:35,918 p=1048566 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:10:35,918 p=1048566 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:11:59,252 p=1048647 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 
+onwards. This feature will be removed from community.general in version 13.0.0. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-30 17:11:59,266 p=1048647 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] ***************************************************************************************************************************************************************
+2025-07-30 17:11:59,286 p=1048647 u=cardelea n=ansible INFO| TASK [Gathering Facts] ********************************************************************************************************************************************************************************************
+2025-07-30 17:12:00,938 p=1048647 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node02.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:12:00,938 p=1048647 u=cardelea n=ansible INFO| ok: [oracle-node02.lab.dev.example.com]
+2025-07-30 17:12:00,960 p=1048647 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node01.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future installation of another Python interpreter could change the
+meaning of that path. See https://docs.ansible.com/ansible-core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-30 17:12:00,960 p=1048647 u=cardelea n=ansible INFO| ok: [oracle-node01.lab.dev.example.com]
+2025-07-30 17:12:00,965 p=1048647 u=cardelea n=ansible INFO| TASK [include_tasks] **********************************************************************************************************************************************************************************************
+2025-07-30 17:12:00,996 p=1048647 u=cardelea n=ansible INFO| included: /home/cardelea/lab2/oraclerac19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-30 17:12:01,001 p=1048647 u=cardelea n=ansible INFO| PLAY [Configure Node Specific Settings for Node 1] ****************************************************************************************************************************************************************
+2025-07-30 17:12:01,005 p=1048647 u=cardelea n=ansible INFO| PLAY [Configure Node Specific Settings for Node 2] ****************************************************************************************************************************************************************
+2025-07-30 17:12:01,008 p=1048647 u=cardelea n=ansible INFO| PLAY [Oracle Grid Infrastructure Installation] ********************************************************************************************************************************************************************
+2025-07-30 17:12:01,011 p=1048647 u=cardelea n=ansible INFO| PLAY [Oracle Database Software Installation] **********************************************************************************************************************************************************************
+2025-07-30 17:12:01,014 p=1048647 u=cardelea n=ansible INFO| PLAY [Post Installation Configuration] ****************************************************************************************************************************************************************************
+2025-07-30 17:12:01,015 p=1048647 u=cardelea n=ansible INFO| PLAY RECAP ********************************************************************************************************************************************************************************************************
+2025-07-30 17:12:01,015 p=1048647 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-30 17:12:01,015 p=1048647 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2025-07-31 10:23:19,867 p=1053164 u=cardelea n=ansible INFO| [DEPRECATION WARNING]: community.general.yaml has been deprecated. The plugin has been superseded by the the option `result_format=yaml` in 
+callback plugin ansible.builtin.default from ansible-core 2.13 onwards. This feature will be removed from community.general in version 13.0.0. 
+Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+2025-07-31 10:23:19,879 p=1053164 u=cardelea n=ansible INFO| PLAY [Oracle RAC 19c Installation on Red Hat Linux] **********************************************************************************************
+2025-07-31 10:23:19,898 p=1053164 u=cardelea n=ansible INFO| TASK [Gathering Facts] ***************************************************************************************************************************
+2025-07-31 10:23:21,400 p=1053164 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node02.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.11, but future
+installation of another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
+core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-31 10:23:21,400 p=1053164 u=cardelea n=ansible INFO| ok: [oracle-node02.lab.dev.example.com]
+2025-07-31 10:23:21,447 p=1053164 u=cardelea n=ansible WARNING| [WARNING]: Platform linux on host oracle-node01.lab.dev.example.com is using the discovered Python interpreter at /usr/bin/python3.12, but future
+installation of another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
+core/2.18/reference_appendices/interpreter_discovery.html for more information.
+
+2025-07-31 10:23:21,447 p=1053164 u=cardelea n=ansible INFO| ok: [oracle-node01.lab.dev.example.com]
+2025-07-31 10:23:21,450 p=1053164 u=cardelea n=ansible INFO| TASK [include_tasks] *****************************************************************************************************************************
+2025-07-31 10:23:21,475 p=1053164 u=cardelea n=ansible INFO| included: /home/cardelea/lab2/oraclerac19ocpv/tasks/prerequisites.yml for oracle-node01.lab.dev.example.com, oracle-node02.lab.dev.example.com
+2025-07-31 10:23:21,479 p=1053164 u=cardelea n=ansible INFO| TASK [Install required packages] *****************************************************************************************************************
+2025-07-31 10:23:21,926 p=1053164 u=cardelea n=ansible INFO| fatal: [oracle-node02.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.11 (3.11.13 (main, Jun 23 2025, 08:54:06) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-31 10:23:21,957 p=1053164 u=cardelea n=ansible INFO| fatal: [oracle-node01.lab.dev.example.com]: FAILED! => changed=false 
+  msg: Could not import the dnf python module using /usr/bin/python3.12 (3.12.11 (main, Jun 19 2025, 11:41:33) [GCC 8.5.0 20210514 (Red Hat 8.5.0-27)]). Please install `python3-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python'])
+  results: []
+2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| PLAY RECAP ***************************************************************************************************************************************
+2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   

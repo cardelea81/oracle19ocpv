@@ -1,0 +1,99 @@
+---
+- name: Apply Oracle Grid Infrastructure PSU - Simple Version
+  hosts: oracle_rac_node1
+  become: yes
+  gather_facts: yes
+  vars:
+    oracle_grid_home: "/services/oracle/grid/19.3/grid_home"
+    patch_base_dir: "patch"
+    opatch_file: "p6880880_121010_Linux-x86-64.zip"
+    psu_file: "p34762026_190000_Linux-x86-64.zip"
+    psu_patch_id: "34762026"
+    
+  tasks:
+    - name: Stop Oracle Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl stop cluster -all
+        {{ oracle_grid_home }}/bin/crsctl stop has
+      become_user: root
+      register: stop_grid
+      failed_when: false
+      tags: stop
+
+    - name: Remove existing OPatch directory
+      file:
+        path: "{{ oracle_grid_home }}/OPatch"
+        state: absent
+      tags: remove_opatch
+
+    - name: Extract new OPatch to Grid Infrastructure home
+      shell: |
+        cd {{ oracle_grid_home }}
+        unzip -o {{ patch_base_dir }}/{{ opatch_file }}
+      become_user: grid
+      register: extract_opatch
+      tags: install_opatch
+
+    - name: Extract PSU patch to current directory
+      shell: |
+        cd {{ oracle_grid_home }}
+        unzip -o {{ patch_base_dir }}/{{ psu_file }}
+      become_user: grid
+      register: extract_psu
+      tags: extract_psu
+
+    - name: Apply PSU using gridSetup.sh (relative path method)
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        cd {{ oracle_grid_home }}/{{ psu_patch_id }}
+        ./gridSetup.sh -applyPSU {{ oracle_grid_home }}/{{ psu_patch_id }}
+      become_user: grid
+      register: apply_psu_relative
+      async: 3600
+      poll: 60
+      failed_when: false
+      tags: apply_psu
+
+    - name: Apply PSU using gridSetup.sh (absolute path method) if first method fails
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/gridSetup.sh -applyPSU {{ oracle_grid_home }}/{{ psu_patch_id }}
+      become_user: grid
+      register: apply_psu_absolute
+      when: apply_psu_relative.rc != 0
+      async: 3600
+      poll: 60
+      failed_when: false
+      tags: apply_psu
+
+    - name: Start Oracle Grid Infrastructure
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/bin/crsctl start has
+        sleep 120
+        {{ oracle_grid_home }}/bin/crsctl start cluster -all
+      become_user: root
+      register: start_grid
+      tags: start
+
+    - name: Verify patch application
+      shell: |
+        export ORACLE_HOME="{{ oracle_grid_home }}"
+        {{ oracle_grid_home }}/OPatch/opatch lspatches
+      become_user: grid
+      register: verify_patches
+      tags: verify
+
+    - name: Display results
+      debug:
+        msg:
+          - "Stop Grid: {{ 'OK' if stop_grid.rc == 0 else 'Check manually' }}"
+          - "OPatch install: {{ 'OK' if extract_opatch.rc == 0 else 'FAILED' }}"
+          - "PSU extract: {{ 'OK' if extract_psu.rc == 0 else 'FAILED' }}"
+          - "PSU apply (relative): {{ 'OK' if apply_psu_relative.rc == 0 else 'FAILED' }}"
+          - "PSU apply (absolute): {{ 'OK' if apply_psu_absolute is defined and apply_psu_absolute.rc == 0 else 'SKIPPED/FAILED' }}"
+          - "Start Grid: {{ 'OK' if start_grid.rc == 0 else 'Check manually' }}"
+          - "Applied patches:"
+          - "{{ verify_patches.stdout_lines | default(['Unable to verify']) }}"
+      tags: summary 
