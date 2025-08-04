@@ -341,26 +341,25 @@
     shell: iscsiadm -m discovery -t sendtargets -p 192.168.2.137
   - name: iSCSI Initiator Sessions
     shell: iscsiadm -m node -l  
-  - name: Run ASM driver configureation
+  - name: Run ASM driver configuration
     become: yes
     become_user: root
     shell: |
       spawn oracleasm configure -i
-       sleep 5
-       expect "\[Default user to own the driver interface []:\n" 
-       send -- "grid\r"
-       expect "\[Default group to own the driver interface []:]\n" 
-       send -- "dba\r"
-       expect "\[Scan for Oracle ASM disks on boot (y/n):]\n"
-       send -- "y\r"
-       expect "\[Writing Oracle ASM library driver configuration: done]\n"
-       send -- "\r"
-       expect eof
-
+      sleep 5
+      expect "\[Default user to own the driver interface []:\n" 
+      send -- "grid\r"
+      expect "\[Default group to own the driver interface []:]\n" 
+      send -- "dba\r"
+      expect "\[Scan for Oracle ASM disks on boot (y/n):]\n"
+      send -- "y\r"
+      expect "\[Writing Oracle ASM library driver configuration: done]\n"
+      send -- "\r"
+      expect eof
     args: 
-      executable: /usr/bin/expect   
-   
-  - name:  initialize the asm disk
+      executable: /usr/bin/expect
+      
+  - name: initialize the asm disk
     shell: oracleasm init
   - name: Scan ASM Disks
     shell: oracleasm scandisks 

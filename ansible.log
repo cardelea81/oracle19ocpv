@@ -391,3 +391,17 @@ core/2.18/reference_appendices/interpreter_discovery.html for more information.
 2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| PLAY RECAP ***************************************************************************************************************************************
 2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| oracle-node01.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 2025-07-31 10:23:21,958 p=1053164 u=cardelea n=ansible INFO| oracle-node02.lab.dev.example.com : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-08-04 10:30:12,697 p=1144232 u=cardelea n=ansible ERROR| ERROR! 'template' is not a valid attribute for a Play
+
+The error appears to be in '/home/cardelea/lab2/oraclerac19ocpv/tasks/storage_setup.yml': line 4, column 3, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+- name: Configure iSCSI initiator
+  ^ here
+
+2025-08-04 10:47:11,172 p=1152469 u=cardelea n=ansible INFO| playbook: oracle-rac-playbook.yml
+2025-08-04 10:47:19,329 p=1152496 u=cardelea n=ansible INFO| playbook: oracle-rac-playbook.yml
+2025-08-04 10:47:30,530 p=1152550 u=cardelea n=ansible INFO| playbook: storage_setup_playbook.yml
